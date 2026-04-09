@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>疗愈空间 · 360°</title>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#06050300}
+:root{
+  --paper:#f0e8d8;--ink:#120e08;--gold:#c4955a;
+  --font-title:'ZCOOL XiaoWei',serif;
+  --font-body:'Noto Serif SC',serif;
+  --font-brush:'Ma Shan Zheng',cursive;
+}
+#c{position:fixed;inset:0;width:100%;height:100%;cursor:grab;display:block}
+#c:active{cursor:grabbing}
+
+/* LOADING */
+#load{position:fixed;inset:0;z-index:100;background:#06050380;backdrop-filter:blur(0);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.8rem;transition:opacity 1s ease}
+#load.out{opacity:0;pointer-events:none}
+.ld-seal{width:64px;height:64px;border:1.5px solid #8b1a1a;display:flex;align-items:center;justify-content:center;font-family:var(--font-brush);font-size:1rem;color:#8b1a1a;text-align:center;line-height:1.4;animation:sealP 2s ease-in-out infinite}
+@keyframes sealP{0%,100%{opacity:.5;transform:scale(.95)}50%{opacity:1;transform:scale(1)}}
+.ld-bar{width:140px;height:1px;background:rgba(196,149,90,.15)}
+.ld-fill{height:1px;background:var(--gold);width:0;transition:width .25s ease}
+.ld-txt{font-family:var(--font-body);font-size:.65rem;letter-spacing:.6em;color:rgba(240,232,216,.35);animation:tFade 2s ease-in-out infinite}
+@keyframes tFade{0%,100%{opacity:.2}50%{opacity:.6}}
+
+/* SCENE SELECT */
+#sel{position:fixed;inset:0;z-index:50;background:rgba(8,6,4,.93);backdrop-filter:blur(16px);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .7s ease;padding:1rem}
+#sel.on{opacity:1;pointer-events:all}
+.sel-ttl{font-family:var(--font-title);font-size:clamp(1.6rem,3.5vw,2.8rem);color:var(--paper);letter-spacing:.2em;text-align:center;animation:fU .8s ease both}
+.sel-sub{font-size:.62rem;letter-spacing:.5em;color:var(--gold);opacity:.55;margin:.6rem 0 2.2rem;animation:fU .8s .1s ease both;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;width:min(860px,94vw);border:0.5px solid rgba(196,149,90,.12);animation:fU .8s .2s ease both}
+.sc{position:relative;cursor:pointer;padding:1.5rem 1.3rem 1.3rem;background:rgba(20,14,6,.75);border:.5px solid rgba(196,149,90,.07);transition:all .3s ease;overflow:hidden}
+.sc::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(196,149,90,.07) 0%,transparent 55%);opacity:0;transition:opacity .3s}
+.sc:hover{background:rgba(36,24,10,.88);border-color:rgba(196,149,90,.22)}
+.sc:hover::after{opacity:1}
+.sc:hover .sc-enter{color:rgba(240,232,216,.7);transform:translateX(3px)}
+.sc-n{font-family:var(--font-brush);font-size:2.2rem;color:var(--gold);opacity:.08;position:absolute;top:.6rem;right:.9rem;line-height:1;transition:opacity .3s}
+.sc:hover .sc-n{opacity:.5}
+.sc-tag{font-size:.58rem;letter-spacing:.35em;color:var(--gold);opacity:.5;margin-bottom:.6rem}
+.sc-name{font-family:var(--font-title);font-size:1.15rem;color:var(--paper);letter-spacing:.15em;margin-bottom:.35rem}
+.sc-desc{font-size:.65rem;color:rgba(240,232,216,.38);letter-spacing:.08em;line-height:1.65}
+.sc-mood{margin-top:.8rem;padding-top:.65rem;border-top:.5px solid rgba(196,149,90,.1);font-size:.58rem;color:rgba(196,149,90,.45);letter-spacing:.18em}
+.sc-enter{position:absolute;bottom:1rem;right:1.1rem;font-size:.6rem;color:rgba(240,232,216,.18);letter-spacing:.3em;transition:all .25s}
+
+/* HUD */
+#hud{position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;transition:opacity 1s ease}
+#hud.on{opacity:1}
+.htop{position:absolute;top:0;left:0;right:0;padding:1.4rem 2rem;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(0,0,0,.55) 0%,transparent 100%);pointer-events:all}
+.bbk{display:flex;align-items:center;gap:.5rem;font-family:var(--font-body);font-size:.68rem;letter-spacing:.35em;color:rgba(240,232,216,.5);cursor:pointer;background:none;border:none;transition:color .2s}
+.bbk:hover{color:rgba(240,232,216,.9)}
+.hname{font-family:var(--font-title);font-size:.95rem;color:rgba(240,232,216,.6);letter-spacing:.3em}
+.hhint{font-size:.6rem;letter-spacing:.28em;color:rgba(240,232,216,.22)}
+
+/* BREATH */
+.brwrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:12px;pointer-events:none}
+.brsvg{overflow:visible}
+.br1{animation:br1 7s ease-in-out infinite;transform-origin:center}
+.br2{animation:br2 7s ease-in-out infinite;transform-origin:center}
+.br3{animation:br3 7s ease-in-out infinite;transform-origin:center}
+@keyframes br1{0%,100%{transform:scale(1);opacity:.1}50%{transform:scale(1.2);opacity:.2}}
+@keyframes br2{0%,100%{transform:scale(1);opacity:.15}50%{transform:scale(1.25);opacity:.28}}
+@keyframes br3{0%,100%{transform:scale(1);opacity:.25;fill:rgba(240,232,216,.04)}50%{transform:scale(1.3);opacity:.45;fill:rgba(240,232,216,.07)}}
+.brlbl{font-family:var(--font-brush);font-size:.72rem;color:rgba(240,232,216,.32);letter-spacing:.4em;animation:brlbl 7s ease-in-out infinite}
+.brst{font-size:.52rem;letter-spacing:.45em;color:rgba(196,149,90,.4);animation:brlbl 7s 1s ease-in-out infinite}
+@keyframes brlbl{0%,100%{opacity:.22}50%{opacity:.5}}
+
+/* BOTTOM */
+.hbot{position:absolute;bottom:0;left:0;right:0;padding:1.6rem 2rem 1.8rem;background:linear-gradient(0deg,rgba(0,0,0,.6) 0%,transparent 100%);pointer-events:all;display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.atog{display:flex;gap:.6rem;align-items:center}
+.atb{display:flex;align-items:center;gap:.45rem;padding:.38rem .85rem;cursor:pointer;border:.5px solid rgba(240,232,216,.16);background:rgba(240,232,216,.03);color:rgba(240,232,216,.4);font-family:var(--font-body);font-size:.65rem;letter-spacing:.18em;transition:all .22s;border-radius:1px}
+.atb:hover{background:rgba(240,232,216,.08);color:rgba(240,232,216,.7)}
+.atb.on{border-color:rgba(196,149,90,.48);background:rgba(196,149,90,.1);color:rgba(240,232,216,.85)}
+.atb .dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.atb.on .dot{animation:dp 1.8s ease-in-out infinite}
+@keyframes dp{0%,100%{opacity:1}50%{opacity:.25}}
+.swrow{display:flex;gap:.45rem;flex-wrap:wrap;justify-content:center}
+.swb{padding:.28rem .68rem;font-family:var(--font-body);font-size:.6rem;letter-spacing:.18em;border:.5px solid rgba(240,232,216,.14);background:transparent;color:rgba(240,232,216,.32);cursor:pointer;transition:all .2s;border-radius:1px}
+.swb:hover{border-color:rgba(240,232,216,.38);color:rgba(240,232,216,.65)}
+.swb.on{border-color:rgba(196,149,90,.5);color:rgba(240,232,216,.88);background:rgba(196,149,90,.1)}
+.sinfo{text-align:right}
+.silbl{font-size:.56rem;letter-spacing:.38em;color:rgba(240,232,216,.22)}
+.sival{font-family:var(--font-body);font-size:.68rem;color:rgba(196,149,90,.65);letter-spacing:.14em;margin-top:2px}
+
+/* TRANSIT */
+#ov{position:fixed;inset:0;z-index:60;background:#06050300;opacity:0;pointer-events:none;transition:opacity .5s ease}
+#ov.on{opacity:1;pointer-events:all}
+
+@keyframes fU{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div id="load">
+  <div class="ld-seal">静<br>心</div>
+  <div class="ld-bar"><div class="ld-fill" id="ldf"></div></div>
+  <div class="ld-txt">正在铺展山河</div>
+</div>
+<div id="ov"></div>
+<canvas id="c"></canvas>
+
+<!-- SCENE SELECT -->
+<div id="sel">
+  <div class="sel-ttl">进入疗愈场景吧</div>
+  <div class="sel-sub">六境 · 360° 沉浸 · 归于当下</div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="htop">
+    <button class="bbk" onclick="showSel()">← 返 回</button>
+    <div class="hname" id="hname">富春山居</div>
+    <div class="hhint">拖 拽 环 视</div>
+  </div>
+  <div class="brwrap">
+    <svg class="brsvg" width="130" height="130" viewBox="-65 -65 130 130">
+      <circle class="br1" r="56" fill="none" stroke="rgba(240,232,216,.1)" stroke-width=".5"/>
+      <circle class="br2" r="42" fill="none" stroke="rgba(240,232,216,.15)" stroke-width=".5"/>
+      <circle class="br3" r="28" fill="rgba(240,232,216,.04)" stroke="rgba(240,232,216,.3)" stroke-width=".5"/>
+    </svg>
+    <div class="brlbl">呼 · 吸</div>
+    <div class="brst" id="bst">缓缓吸气</div>
+  </div>
+  <div class="hbot">
+    <div class="atog">
+      <div class="atb" id="an" onclick="tog('n')"><div class="dot"></div>自然白噪音</div>
+      <div class="atb on" id="am" onclick="tog('m')"><div class="dot"></div>传统疗愈音乐</div>
+    </div>
+    <div class="swrow" id="sw"></div>
+    <div class="sinfo">
+      <div class="silbl">适 配 症 状</div>
+      <div class="sival" id="sadapt">焦虑 · 烦躁</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ═══════════════════════════════════
+   SCENE DEFINITIONS
+═══════════════════════════════════ */
+const SD = [
+  { id:'fuchun', name:'富春山居', tag:'山水水墨 · 视觉疗愈',
+    desc:'远山淡墨、云雾缓流、江面平阔、轻舟无痕',
+    mood:'焦虑 · 烦躁 · 压力过载',
+    img:'fuchun.jpg',
+    type:'ink_river' },
+  { id:'yunshan', name:'云山禅境', tag:'极简禅意 · 静心安神',
+    desc:'孤峰耸立、云海漫涌、巨松挺立、无多余杂物',
+    mood:'精神内耗 · 失眠 · 注意力涣散',
+    img:'yunshan.jpg',
+    type:'zen_peak' },
+  { id:'xishan', name:'溪山行旅', tag:'自然疗愈 · 疲惫修复',
+    desc:'浅溪、石桥、远山、雾霭、林间微光',
+    mood:'情绪低落 · 紧绷 · 疲惫',
+    img:'xishan.jpg',
+    type:'stream_forest' },
+  { id:'tingyu', name:'听雨轩窗', tag:'中式园林 · 思绪纾解',
+    desc:'苏式园林、漏窗、荷塘、芭蕉、细雨轻落',
+    mood:'嘈杂环境 · 抑郁 · 思绪杂乱',
+    img:'tingyu.jpg',
+    type:'rain_garden' },
+  { id:'bimo', name:'笔墨静心', tag:'书房禅意 · 专注提升',
+    desc:'明式书房、文房四宝、竹影窗纱、青烟袅袅',
+    mood:'浮躁 · 考前紧张 · 专注力差',
+    img:'bimo.jpg',
+    type:'study_room' },
+  { id:'lanting', name:'兰亭曲水', tag:'竹林胜境 · 心情舒缓',
+    desc:'茂林修竹、曲水流觞、落花逐水',
+    mood:'社交压力 · 心情压抑',
+    img:'lanting.jpg',
+    type:'bamboo_grove' },
+];
+
+/* ═══════════════════════════════════
+   PROCEDURAL PANORAMA PAINTER
+   Each scene paints a 4096×2048 canvas
+   that wraps seamlessly (equirectangular)
+═══════════════════════════════════ */
+const W=4096, H=2048;
+const offC = document.createElement('canvas');
+offC.width=W; offC.height=H;
+const g = offC.getContext('2d');
+
+// Seeded PRNG for deterministic scenes
+function mkRng(seed){
+  let s=seed|0;
+  return ()=>{ s=Math.imul(48271,s)|0; return (s>>>0)/2**32; };
+}
+
+function noise(x,y,rng){ // simple value noise
+  return Math.sin(x*127.1+y*311.7)*0.5+0.5;
+}
+
+// Draw ridge line across full 4096 width (wraps)
+function ridge(y0, amp, freq, octaves, alpha, fillDown, color, rng){
+  g.save();
+  g.fillStyle = color || `rgba(10,6,2,${alpha})`;
+  g.beginPath();
+  g.moveTo(0, H);
+  for(let x=0;x<=W;x+=3){
+    let n=0, a=1, f=freq;
+    for(let o=0;o<octaves;o++){ n+=Math.sin(x*f*Math.PI*2/W + rng()*0.01)*a; a*=0.5; f*=2.1; }
+    const py = y0 + n*amp;
+    x===0 ? g.moveTo(x, fillDown ? H : 0) : null;
+    g.lineTo(x, py);
+  }
+  if(fillDown){ g.lineTo(W,H); g.lineTo(0,H); }
+  else        { g.lineTo(W,0); g.lineTo(0,0); }
+  g.closePath(); g.fill();
+  g.restore();
+}
+
+// Horizontal gradient band
+function band(y,h,color1,color2){
+  const gr = g.createLinearGradient(0,y,0,y+h);
+  gr.addColorStop(0,color1); gr.addColorStop(1,color2);
+  g.fillStyle=gr; g.fillRect(0,y,W,h);
+}
+
+// Stars
+function stars(count, yMax, rng){
+  for(let i=0;i<count;i++){
+    const x=rng()*W, y=rng()*yMax;
+    const r=rng()*1.1+0.2, a=rng()*0.55+0.12;
+    g.fillStyle=`rgba(238,228,208,${a})`;
+    g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill();
+  }
+}
+
+// Moon
+function moon(u, v, radius, color){
+  const cx=u*W, cy=v*H;
+  // glow
+  const gl=g.createRadialGradient(cx,cy,0,cx,cy,radius*6);
+  gl.addColorStop(0,`${color}30`); gl.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gl; g.fillRect(cx-radius*7,cy-radius*7,radius*14,radius*14);
+  // disc
+  g.fillStyle=color;
+  g.beginPath(); g.arc(cx,cy,radius,0,Math.PI*2); g.fill();
+  // shadow crescent
+  g.fillStyle='rgba(8,5,2,0.35)';
+  g.beginPath(); g.arc(cx-radius*0.28,cy,radius*0.9,0,Math.PI*2); g.fill();
+}
+
+// Mist band (blurred)
+function mistBand(y, alpha, blur, color){
+  g.save();
+  g.filter=`blur(${blur}px)`;
+  band(y-blur, blur*3, `${color}00`, `${color}${Math.round(alpha*255).toString(16).padStart(2,'0')}`);
+  band(y+blur, blur*3, `${color}${Math.round(alpha*255).toString(16).padStart(2,'0')}`, `${color}00`);
+  g.restore();
+}
+
+// ── SCENE PAINTERS ──────────────────────────────
+
+function paintInkRiver(rng){
+  // Night sky: near-black to deep charcoal
+  band(0,H,'#0b0906','#1c1610');
+  stars(260, H*0.42, rng);
+  moon(0.72, 0.18, 28, '#e2d8b8');
+  // Atmospheric haze
+  g.save(); g.filter='blur(40px)';
+  band(H*0.3, H*0.25, 'rgba(80,60,30,0)', 'rgba(80,60,30,0.06)');
+  g.restore();
+  // Mountain layers: far→near, getting darker
+  const mtColors=['rgba(24,18,10,', 'rgba(20,14,7,','rgba(16,11,5,','rgba(12,8,3,','rgba(8,5,1,'];
+  const mtAlpha=[0.13,0.22,0.36,0.52,0.72];
+  const mtY=[0.70,0.65,0.60,0.54,0.48];
+  const mtAmp=[50,70,90,110,130];
+  for(let i=0;i<5;i++){
+    // blur farther layers
+    if(i<2){ g.save(); g.filter=`blur(${(2-i)*6}px)`; }
+    ridge(H*mtY[i], mtAmp[i], 1.8+i*0.6, 4, mtAlpha[i], true, mtColors[i]+mtAlpha[i]+')', rng);
+    if(i<2) g.restore();
+  }
+  // Mist layers between mountains
+  mistBand(H*0.64, 0.07, 18, '#c8b890');
+  mistBand(H*0.57, 0.10, 22, '#c0b088');
+  mistBand(H*0.50, 0.08, 16, '#b8a880');
+  // River — reflective strip
+  g.save();
+  const rv=g.createLinearGradient(0,H*0.72,0,H*0.86);
+  rv.addColorStop(0,'rgba(18,14,8,0)'); rv.addColorStop(0.3,'rgba(28,22,12,0.6)'); rv.addColorStop(1,'rgba(10,8,5,0.8)');
+  g.fillStyle=rv; g.fillRect(0,H*0.72,W,H*0.16);
+  g.restore();
+  // Moon reflection
+  for(let i=0;i<14;i++){
+    g.fillStyle=`rgba(210,190,130,${0.035-i*0.0022})`;
+    g.fillRect(W*0.68-i*12, H*0.75+i*5, 60+i*24, 2);
+  }
+  // Ripple lines
+  for(let i=0;i<20;i++){
+    const ry=H*0.77+i*11+rng()*6;
+    g.strokeStyle=`rgba(150,130,80,${0.025-i*0.001})`;
+    g.lineWidth=0.8; g.beginPath(); g.moveTo(W*0.1,ry); g.lineTo(W*0.9,ry); g.stroke();
+  }
+  // Lone boat
+  const bx=W*0.34, by=H*0.795;
+  g.fillStyle='rgba(12,9,5,0.85)';
+  g.beginPath(); g.moveTo(bx,by-4); g.bezierCurveTo(bx+10,by-8,bx+48,by-8,bx+58,by-4); g.lineTo(bx+62,by); g.lineTo(bx-4,by); g.closePath(); g.fill();
+  // Mast
+  g.strokeStyle='rgba(12,9,5,0.7)'; g.lineWidth=1.5;
+  g.beginPath(); g.moveTo(bx+30,by); g.lineTo(bx+28,by-28); g.stroke();
+  // Reed silhouettes (both sides, wrap-friendly: draw at x=0 AND x=W too)
+  for(let side=0;side<2;side++){
+    const ox=side===0?0:W-180;
+    for(let r=0;r<22;r++){
+      const rx=ox+rng()*200, rBY=H*0.88;
+      g.strokeStyle=`rgba(14,10,4,${0.25+rng()*0.4})`; g.lineWidth=1;
+      g.beginPath(); g.moveTo(rx,rBY);
+      g.quadraticCurveTo(rx+(rng()*30-15),rBY-H*0.11, rx+(rng()*40-20),rBY-H*0.17);
+      g.stroke();
+      g.fillStyle=`rgba(14,10,4,0.55)`;
+      g.beginPath(); g.ellipse(rx+rng()*6-3,rBY-H*0.17,3.5,14,0.3,0,Math.PI*2); g.fill();
+    }
+  }
+  // Ground
+  band(H*0.86,H*0.14,'rgba(6,4,2,0)','#060402');
+  // Vignette
+  const vi=g.createRadialGradient(W/2,H/2,H*0.28,W/2,H/2,H*0.85);
+  vi.addColorStop(0,'rgba(0,0,0,0)'); vi.addColorStop(1,'rgba(0,0,0,0.55)');
+  g.fillStyle=vi; g.fillRect(0,0,W,H);
+}
+
+function paintZenPeak(rng){
+  // Cool near-black sky
+  band(0,H,'#09080e','#18162a');
+  stars(180, H*0.38, rng);
+  moon(0.48, 0.18, 32, '#d8d0f0');
+  // Purple nebula glow
+  g.save(); g.filter='blur(60px)';
+  const nb=g.createRadialGradient(W*0.5,H*0.3,0,W*0.5,H*0.3,W*0.35);
+  nb.addColorStop(0,'rgba(90,70,160,0.08)'); nb.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=nb; g.fillRect(0,0,W,H);
+  g.restore();
+  // Cloud sea — large soft blobs
+  g.save(); g.filter='blur(35px)';
+  for(let ci=0;ci<8;ci++){
+    g.fillStyle=`rgba(200,190,230,${0.06+rng()*0.04})`;
+    g.beginPath();
+    g.ellipse(rng()*W, H*(0.52+rng()*0.06), W*(0.18+rng()*0.12), H*(0.06+rng()*0.04), rng()*0.3, 0, Math.PI*2);
+    g.fill();
+  }
+  g.restore();
+  // Far mountain silhouettes (very faint)
+  g.save(); g.filter='blur(8px)';
+  ridge(H*0.65, 80, 0.9, 3, 0.12, true, 'rgba(20,16,30,0.12)', rng);
+  ridge(H*0.60, 100, 1.2, 3, 0.18, true, 'rgba(18,14,26,0.18)', rng);
+  g.restore();
+  // MAIN PEAK — single dominant mountain, centered
+  // Left slope
+  g.fillStyle='rgba(14,12,20,0.95)';
+  g.beginPath();
+  g.moveTo(W*0.08, H);
+  g.bezierCurveTo(W*0.2, H*0.7, W*0.35, H*0.32, W*0.5, H*0.14);
+  g.bezierCurveTo(W*0.55, H*0.22, W*0.65, H*0.48, W*0.78, H*0.62);
+  g.bezierCurveTo(W*0.85, H*0.72, W*0.92, H*0.82, W, H);
+  // also wrap left side
+  g.lineTo(W,H); g.closePath(); g.fill();
+  // Same peak appearing at right edge (seamless wrap)
+  g.fillStyle='rgba(14,12,20,0.95)';
+  g.beginPath();
+  g.moveTo(0, H);
+  g.lineTo(W*0.08, H);
+  g.bezierCurveTo(W*0.05, H*0.82, 0, H*0.72, 0, H);
+  g.fill();
+  // Snow/mist at peak
+  g.save(); g.filter='blur(6px)';
+  g.fillStyle='rgba(220,215,240,0.25)';
+  g.beginPath(); g.ellipse(W*0.5, H*0.16, 60, 22, 0, 0, Math.PI*2); g.fill();
+  g.restore();
+  // Ancient pine — left of peak
+  paintPine(W*0.28, H*0.62, 110, 0.85, rng);
+  // Mist bands
+  mistBand(H*0.55, 0.14, 28, '#c8c0e0');
+  mistBand(H*0.63, 0.10, 22, '#c0b8d8');
+  // Ground
+  band(H*0.84,H*0.16,'rgba(6,5,10,0)','#080610');
+  // Vignette
+  const vi=g.createRadialGradient(W/2,H/2,H*0.22,W/2,H/2,H*0.9);
+  vi.addColorStop(0,'rgba(0,0,0,0)'); vi.addColorStop(1,'rgba(0,0,0,0.65)');
+  g.fillStyle=vi; g.fillRect(0,0,W,H);
+}
+
+function paintPine(x, baseY, height, alpha, rng){
+  // Trunk
+  g.strokeStyle=`rgba(16,12,6,${alpha*0.8})`; g.lineWidth=5;
+  g.beginPath(); g.moveTo(x,baseY); g.lineTo(x+5,baseY-height); g.stroke();
+  // Branches layered from bottom
+  for(let l=0;l<6;l++){
+    const ly=baseY-height*(0.25+l*0.14);
+    const lw=height*(0.32-l*0.04);
+    g.fillStyle=`rgba(14,16,10,${alpha*(0.45+l*0.07)})`;
+    g.beginPath();
+    g.moveTo(x+3, ly-height*0.08);
+    g.bezierCurveTo(x-lw*0.1, ly, x-lw, ly+height*0.06, x-lw*1.1, ly+height*0.03);
+    g.bezierCurveTo(x-lw*0.5, ly-height*0.04, x-lw*0.2, ly-height*0.05, x+3, ly-height*0.08);
+    g.fill();
+    g.beginPath();
+    g.moveTo(x+3, ly-height*0.08);
+    g.bezierCurveTo(x+lw*0.1, ly, x+lw, ly+height*0.06, x+lw*1.1, ly+height*0.03);
+    g.bezierCurveTo(x+lw*0.5, ly-height*0.04, x+lw*0.2, ly-height*0.05, x+3, ly-height*0.08);
+    g.fill();
+  }
+}
+
+function paintStreamForest(rng){
+  // Deep green-dark sky
+  band(0,H,'#080e08','#111a0e');
+  stars(120, H*0.35, rng);
+  moon(0.3, 0.18, 22, '#d0e8c8');
+  // Light rays through canopy
+  g.save(); g.filter='blur(22px)';
+  for(let r=0;r<8;r++){
+    const rx=rng()*W;
+    g.fillStyle='rgba(180,220,150,0.04)';
+    g.beginPath(); g.moveTo(rx,0); g.lineTo(rx+50,H*0.65); g.lineTo(rx+110,H*0.65); g.lineTo(rx+70,0); g.fill();
+  }
+  g.restore();
+  // Forest layers, many trees across 360°
+  const treeColors=['rgba(10,18,8,','rgba(8,16,6,','rgba(6,13,5,','rgba(4,10,4,'];
+  for(let layer=0;layer<4;layer++){
+    const count=12+layer*4;
+    for(let t=0;t<count;t++){
+      const tx=(t/count)*W + rng()*60-30;
+      const th=H*(0.22+rng()*0.14)*(1-layer*0.05);
+      const alpha=0.4+layer*0.15;
+      g.fillStyle=treeColors[layer]+alpha+')';
+      // Tree shape
+      g.beginPath();
+      g.moveTo(tx, H*(0.9-layer*0.04));
+      g.bezierCurveTo(tx-th*0.5, H*(0.9-layer*0.04)-th*0.4, tx-th*0.4, H*(0.9-layer*0.04)-th, tx, H*(0.9-layer*0.04)-th);
+      g.bezierCurveTo(tx+th*0.4, H*(0.9-layer*0.04)-th, tx+th*0.5, H*(0.9-layer*0.04)-th*0.4, tx, H*(0.9-layer*0.04));
+      g.fill();
+    }
+  }
+  // Misty stream (winding)
+  g.save(); g.filter='blur(3px)';
+  const sr=g.createLinearGradient(0,H*0.72,0,H*0.82);
+  sr.addColorStop(0,'rgba(100,160,100,0.15)'); sr.addColorStop(0.5,'rgba(80,140,80,0.28)'); sr.addColorStop(1,'rgba(60,110,60,0.08)');
+  g.fillStyle=sr;
+  g.beginPath(); g.moveTo(W*0.1,H);
+  g.bezierCurveTo(W*0.25,H*0.82,W*0.4,H*0.73,W*0.52,H*0.72);
+  g.bezierCurveTo(W*0.64,H*0.71,W*0.78,H*0.76,W*0.9,H);
+  g.lineTo(W,H); g.lineTo(0,H); g.fill();
+  g.restore();
+  // Stone bridge
+  g.fillStyle='rgba(30,45,25,0.75)';
+  g.beginPath(); g.ellipse(W*0.52,H*0.73,W*0.05,H*0.013,0,0,Math.PI*2); g.fill();
+  // Bridge arch cutout
+  g.fillStyle='rgba(80,140,80,0.2)';
+  g.beginPath(); g.ellipse(W*0.52,H*0.74,W*0.025,H*0.008,0,Math.PI,Math.PI*2); g.fill();
+  // Ground mist
+  mistBand(H*0.78, 0.16, 24, '#b0d0a8');
+  // Fireflies
+  for(let f=0;f<18;f++){
+    g.fillStyle=`rgba(200,240,120,${0.15+rng()*0.2})`;
+    g.beginPath(); g.arc(rng()*W, H*(0.5+rng()*0.35), 1.5, 0, Math.PI*2); g.fill();
+  }
+  band(H*0.88,H*0.12,'rgba(4,8,4,0)','#050a04');
+  const vi=g.createRadialGradient(W/2,H/2,H*0.25,W/2,H/2,H*0.88);
+  vi.addColorStop(0,'rgba(0,0,0,0)'); vi.addColorStop(1,'rgba(0,0,0,0.62)');
+  g.fillStyle=vi; g.fillRect(0,0,W,H);
+}
+
+function paintRainGarden(rng){
+  // Rainy night, blue-grey
+  band(0,H,'#090d16','#101822');
+  // Dim stars (through clouds)
+  for(let i=0;i<60;i++){
+    g.fillStyle=`rgba(200,210,230,${rng()*0.12+0.03})`;
+    g.beginPath(); g.arc(rng()*W,rng()*H*0.35,rng()*0.8+0.2,0,Math.PI*2); g.fill();
+  }
+  moon(0.62, 0.22, 20, '#a8c0e0');
+  // Cloud layer
+  g.save(); g.filter='blur(30px)';
+  for(let ci=0;ci<10;ci++){
+    g.fillStyle=`rgba(120,140,180,${0.06+rng()*0.04})`;
+    g.beginPath(); g.ellipse(rng()*W, H*(0.18+rng()*0.2), W*(0.2+rng()*0.15), H*(0.05+rng()*0.04), 0, 0, Math.PI*2); g.fill();
+  }
+  g.restore();
+  // Rain streaks — distributed across full panorama
+  for(let r=0;r<500;r++){
+    const rx=rng()*W, ry=rng()*H*0.85;
+    const len=12+rng()*20, ang=0.1+rng()*0.05;
+    g.strokeStyle=`rgba(140,170,210,${0.07+rng()*0.12})`;
+    g.lineWidth=0.6;
+    g.beginPath(); g.moveTo(rx,ry); g.lineTo(rx+ang*len,ry+len); g.stroke();
+  }
+  // Garden elements: distant pagoda silhouette
+  const pgx=W*0.2;
+  g.fillStyle='rgba(8,12,20,0.88)';
+  // Pagoda body
+  for(let f=0;f<5;f++){
+    const fy=H*0.58-f*28, fw=60-f*8;
+    g.fillRect(pgx-fw/2, fy, fw, 22);
+    // Curved roof
+    g.beginPath(); g.moveTo(pgx-fw/2-8,fy); g.bezierCurveTo(pgx-fw/2,fy-8,pgx+fw/2,fy-8,pgx+fw/2+8,fy); g.fill();
+  }
+  // Lotus pond (lower area)
+  g.save(); g.filter='blur(4px)';
+  const lp=g.createEllipse||null;
+  for(let l=0;l<12;l++){
+    g.fillStyle=`rgba(20,50,40,${0.35+rng()*0.25})`;
+    g.beginPath(); g.ellipse(rng()*W, H*(0.76+rng()*0.1), 30+rng()*35, 12+rng()*10, rng()*0.5, 0, Math.PI*2); g.fill();
+  }
+  g.restore();
+  // Moon gate (circular arch)
+  g.strokeStyle='rgba(80,70,50,0.65)'; g.lineWidth=10;
+  g.beginPath(); g.arc(W*0.68, H*0.62, 70, 0, Math.PI*2); g.stroke();
+  // Banana leaf
+  g.save(); g.filter='blur(1px)';
+  g.strokeStyle='rgba(20,55,30,0.55)'; g.lineWidth=3;
+  g.beginPath(); g.moveTo(W*0.82,H*0.58); g.bezierCurveTo(W*0.86,H*0.48,W*0.9,H*0.38,W*0.88,H*0.28); g.stroke();
+  g.beginPath(); g.moveTo(W*0.86,H*0.42); g.bezierCurveTo(W*0.92,H*0.4,W*0.96,H*0.42,W*0.97,H*0.38); g.stroke();
+  g.restore();
+  // Reflective ground (wet stone)
+  band(H*0.84,H*0.16,'rgba(12,18,28,0)','rgba(12,18,28,0.8)');
+  mistBand(H*0.80, 0.09, 18, '#8090b0');
+  const vi=g.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.9);
+  vi.addColorStop(0,'rgba(0,0,0,0)'); vi.addColorStop(1,'rgba(0,0,0,0.65)');
+  g.fillStyle=vi; g.fillRect(0,0,W,H);
+}
+
+function paintStudyRoom(rng){
+  // Warm candle-lit interior — dark amber
+  band(0,H,'#0c0800','#1e1200');
+  // Ceiling — dark wood texture suggestion
+  band(0,H*0.22,'#080500','#120d00');
+  // Wall — warm amber glow zone (candle light)
+  const cl=g.createRadialGradient(W*0.5,H*0.5,0,W*0.5,H*0.5,W*0.55);
+  cl.addColorStop(0,'rgba(200,130,40,0.14)'); cl.addColorStop(0.4,'rgba(160,90,20,0.06)'); cl.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=cl; g.fillRect(0,0,W,H);
+  // Shelf on right wall
+  g.fillStyle='rgba(40,28,8,0.85)';
+  g.fillRect(W*0.7,H*0.22,W*0.15,H*0.38);
+  // Books on shelf
+  for(let b=0;b<9;b++){
+    const bx=W*0.71+b*24, by=H*0.25;
+    g.fillStyle=`rgba(${60+rng()*40|0},${40+rng()*20|0},${10+rng()*10|0},0.8)`;
+    g.fillRect(bx,by,20,H*0.28);
+    g.strokeStyle='rgba(200,160,80,0.2)'; g.lineWidth=0.5;
+    g.strokeRect(bx,by,20,H*0.28);
+  }
+  // Desk surface
+  g.fillStyle='rgba(30,20,6,0.9)';
+  g.beginPath(); g.moveTo(0,H*0.6); g.lineTo(W,H*0.56); g.lineTo(W,H); g.lineTo(0,H); g.fill();
+  // Scroll/paper on desk
+  g.fillStyle='rgba(215,200,165,0.8)';
+  g.fillRect(W*0.3,H*0.38,W*0.28,H*0.2);
+  g.strokeStyle='rgba(140,110,60,0.35)'; g.lineWidth=1.2;
+  g.strokeRect(W*0.3,H*0.38,W*0.28,H*0.2);
+  // Calligraphy lines
+  g.strokeStyle='rgba(18,12,4,0.65)'; g.lineWidth=1.8;
+  for(let l=0;l<5;l++){
+    g.beginPath();
+    g.moveTo(W*0.33, H*0.42+l*13);
+    g.bezierCurveTo(W*0.41,H*0.42+l*13-4, W*0.5,H*0.42+l*13+4, W*0.55,H*0.42+l*13);
+    g.stroke();
+  }
+  // Ink stone
+  g.fillStyle='rgba(12,10,6,0.95)';
+  g.beginPath(); g.ellipse(W*0.66,H*0.58,26,16,0,0,Math.PI*2); g.fill();
+  g.fillStyle='rgba(40,30,10,0.5)';
+  g.beginPath(); g.ellipse(W*0.66,H*0.57,16,8,0,0,Math.PI*2); g.fill();
+  // Brush
+  g.strokeStyle='rgba(90,65,25,0.8)'; g.lineWidth=5;
+  g.beginPath(); g.moveTo(W*0.7,H*0.38); g.lineTo(W*0.66,H*0.6); g.stroke();
+  g.fillStyle='rgba(16,12,6,0.9)';
+  g.beginPath(); g.moveTo(W*0.655,H*0.6); g.lineTo(W*0.648,H*0.66); g.lineTo(W*0.672,H*0.65); g.fill();
+  // Candle (source of light)
+  g.fillStyle='rgba(220,180,60,0.9)';
+  g.beginPath(); g.ellipse(W*0.78,H*0.48,4,8,0,0,Math.PI*2); g.fill();
+  // Candle flame glow
+  g.save(); g.filter='blur(8px)';
+  g.fillStyle='rgba(255,200,60,0.5)';
+  g.beginPath(); g.ellipse(W*0.78,H*0.47,12,18,0,0,Math.PI*2); g.fill();
+  g.restore();
+  // Bamboo shadow on wall (left side)
+  g.save(); g.filter='blur(4px)';
+  g.strokeStyle='rgba(60,80,30,0.12)'; g.lineWidth=10;
+  for(let b=0;b<6;b++){
+    const bx=W*0.06+b*W*0.06;
+    g.beginPath(); g.moveTo(bx,0); g.lineTo(bx+18,H*0.58); g.stroke();
+    for(let s=0;s<5;s++){
+      const slen=35+s*8;
+      g.lineWidth=6;
+      g.beginPath(); g.moveTo(bx+s*4,H*(0.1+s*0.1)); g.lineTo(bx-slen,H*(0.07+s*0.1)); g.stroke();
+    }
+  }
+  g.restore();
+  // Incense smoke (right area)
+  g.save(); g.filter='blur(5px)';
+  g.strokeStyle='rgba(190,170,120,0.12)'; g.lineWidth=2.5;
+  const sx=W*0.85;
+  g.beginPath(); g.moveTo(sx,H*0.52);
+  g.bezierCurveTo(sx-18,H*0.44,sx+18,H*0.35,sx-10,H*0.26);
+  g.bezierCurveTo(sx+14,H*0.19,sx-16,H*0.12,sx,H*0.06);
+  g.stroke(); g.restore();
+  // Ground dark
+  band(H*0.82,H*0.18,'rgba(6,4,0,0)','#080500');
+  const vi=g.createRadialGradient(W*0.5,H*0.5,H*0.15,W*0.5,H*0.5,H*0.88);
+  vi.addColorStop(0,'rgba(0,0,0,0)'); vi.addColorStop(1,'rgba(0,0,0,0.72)');
+  g.fillStyle=vi; g.fillRect(0,0,W,H);
+}
+
+function paintBambooGrove(rng){
+  // Green-dark sky
+  band(0,H,'#080e06','#0e1a08');
+  stars(90, H*0.32, rng);
+  moon(0.42, 0.2, 24, '#c8f0c0');
+  // Dappled sunlight blobs
+  g.save(); g.filter='blur(28px)';
+  for(let d=0;d<6;d++){
+    g.fillStyle=`rgba(160,220,100,0.05)`;
+    g.beginPath(); g.arc(rng()*W, H*(0.3+rng()*0.3), 70+rng()*80, 0, Math.PI*2); g.fill();
+  }
+  g.restore();
+  // Bamboo forest — many stalks across full 360°
+  for(let b=0;b<32;b++){
+    const bx=(b/32)*W + rng()*60-30;
+    const alpha=0.3+rng()*0.45;
+    const w=8+rng()*12;
+    // Stalk color: green-dark
+    const gr=g.createLinearGradient(bx,0,bx+w,0);
+    gr.addColorStop(0,`rgba(28,55,18,${alpha})`); gr.addColorStop(0.5,`rgba(42,75,28,${alpha})`); gr.addColorStop(1,`rgba(20,40,14,${alpha})`);
+    g.fillStyle=gr;
+    // Slightly curved stalk
+    const curve=rng()*30-15;
+    g.beginPath(); g.moveTo(bx,H); g.bezierCurveTo(bx+curve*0.3,H*0.65,bx+curve*0.7,H*0.3,bx+curve,0);
+    g.lineTo(bx+w+curve,0); g.bezierCurveTo(bx+w+curve*0.7,H*0.3,bx+w+curve*0.3,H*0.65,bx+w,H);
+    g.closePath(); g.fill();
+    // Nodes
+    for(let n=1;n<10;n++){
+      const ny=H-n*(H/9);
+      g.strokeStyle=`rgba(18,36,12,${alpha*0.7})`; g.lineWidth=w+2;
+      g.beginPath(); g.moveTo(bx-1,ny); g.lineTo(bx+w+1,ny); g.stroke();
+    }
+    // Leaves (a few per stalk, upper half)
+    for(let l=0;l<4;l++){
+      const lx=bx+rng()*w, ly=rng()*H*0.6;
+      const llen=30+rng()*40, ldir=(rng()-0.5)*Math.PI*0.8;
+      g.strokeStyle=`rgba(40,90,25,${alpha*0.6})`; g.lineWidth=1.5;
+      g.beginPath(); g.moveTo(lx,ly);
+      g.bezierCurveTo(lx+Math.cos(ldir)*llen*0.4,ly+Math.sin(ldir)*llen*0.4, lx+Math.cos(ldir)*llen*0.8,ly+Math.sin(ldir)*llen*0.2, lx+Math.cos(ldir)*llen,ly+Math.sin(ldir)*llen*0.05);
+      g.stroke();
+    }
+  }
+  // Winding stream at base
+  g.save(); g.filter='blur(3px)';
+  const strm=g.createLinearGradient(0,H*0.78,0,H*0.86);
+  strm.addColorStop(0,'rgba(60,120,60,0.1)'); strm.addColorStop(0.5,'rgba(80,150,70,0.22)'); strm.addColorStop(1,'rgba(40,90,40,0.05)');
+  g.fillStyle=strm;
+  g.beginPath(); g.moveTo(0,H);
+  g.bezierCurveTo(W*0.15,H*0.83,W*0.3,H*0.79,W*0.45,H*0.8);
+  g.bezierCurveTo(W*0.6,H*0.81,W*0.75,H*0.78,W*0.9,H*0.82);
+  g.lineTo(W,H); g.lineTo(0,H); g.fill(); g.restore();
+  // Fallen petals on stream
+  for(let p=0;p<40;p++){
+    g.fillStyle=`rgba(210,230,180,${0.12+rng()*0.18})`;
+    g.save(); g.translate(rng()*W, H*(0.78+rng()*0.1)); g.rotate(rng()*Math.PI*2);
+    g.beginPath(); g.ellipse(0,0,5+rng()*6,2+rng()*3,0,0,Math.PI*2); g.fill();
+    g.restore();
+  }
+  // Stone table and seat suggestion
+  g.fillStyle='rgba(30,50,20,0.7)';
+  g.beginPath(); g.ellipse(W*0.6,H*0.72,40,12,0,0,Math.PI*2); g.fill();
+  g.fillRect(W*0.598,H*0.72,4,H*0.04);
+  // Ground
+  band(H*0.86,H*0.14,'rgba(5,9,4,0)','#060b05');
+  const vi=g.createRadialGradient(W/2,H/2,H*0.22,W/2,H/2,H*0.9);
+  vi.addColorStop(0,'rgba(0,0,0,0)'); vi.addColorStop(1,'rgba(0,0,0,0.6)');
+  g.fillStyle=vi; g.fillRect(0,0,W,H);
+}
+
+const PAINTERS = {
+  ink_river: paintInkRiver,
+  zen_peak: paintZenPeak,
+  stream_forest: paintStreamForest,
+  rain_garden: paintRainGarden,
+  study_room: paintStudyRoom,
+  bamboo_grove: paintBambooGrove,
+};
+
+function buildTex(type, seed){
+  const rng=mkRng(seed);
+  g.clearRect(0,0,W,H);
+  PAINTERS[type](rng);
+  const t=new THREE.CanvasTexture(offC);
+  t.wrapS=THREE.RepeatWrapping;
+  t.needsUpdate=true;
+  return t;
+}
+
+/* ═══════════════════════════════════
+   THREE.JS
+═══════════════════════════════════ */
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.1,1000);
+camera.position.set(0,0,0.01);
+
+window.addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+
+// Inner sphere
+const sGeo=new THREE.SphereGeometry(400,96,48);
+sGeo.scale(-1,1,1);
+const sMat=new THREE.MeshBasicMaterial({color:0x080604});
+const sMesh=new THREE.Mesh(sGeo,sMat);
+scene.add(sMesh);
+
+// Ground disk (hides bottom pole distortion)
+const gGeo=new THREE.CylinderGeometry(400,400,1,64,1,false,-Math.PI,-Math.PI);
+const gMat=new THREE.MeshBasicMaterial({color:0x050402,side:THREE.FrontSide});
+const gMesh=new THREE.Mesh(gGeo,gMat);
+gMesh.position.y=-65; scene.add(gMesh);
+
+// Particle system
+let pSys=null;
+function mkParticles(color,count,size,rain){
+  if(pSys){scene.remove(pSys);pSys.geometry.dispose();pSys.material.dispose();}
+  const pos=new Float32Array(count*3);
+  const vel=new Float32Array(count);
+  const R=320;
+  for(let i=0;i<count;i++){
+    const th=Math.random()*Math.PI*2;
+    const ph=rain?(0.25+Math.random()*0.6)*Math.PI:Math.acos(2*Math.random()-1);
+    const r=R*(0.3+Math.random()*0.55);
+    pos[i*3]=r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1]=r*Math.cos(ph);
+    pos[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+    vel[i]=0.4+Math.random()*0.6;
+  }
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('vel',new THREE.BufferAttribute(vel,1));
+  const mat=new THREE.PointsMaterial({color,size,transparent:true,opacity:0.4,sizeAttenuation:true,depthWrite:false});
+  pSys=new THREE.Points(geo,mat);
+  pSys.userData={rain,count};
+  scene.add(pSys);
+}
+
+/* ORBIT */
+let drag=false,px=0,py=0,vy=0,vx=0,ry=0,rx=0;
+const RS=0.0022, DAMP=0.935, MX=Math.PI*0.36;
+canvas.addEventListener('mousedown',e=>{drag=true;px=e.clientX;py=e.clientY});
+window.addEventListener('mouseup',()=>drag=false);
+window.addEventListener('mousemove',e=>{if(!drag)return;vy+=(e.clientX-px)*RS;vx+=(e.clientY-py)*RS*0.55;px=e.clientX;py=e.clientY});
+canvas.addEventListener('touchstart',e=>{drag=true;px=e.touches[0].clientX;py=e.touches[0].clientY},{passive:true});
+window.addEventListener('touchend',()=>drag=false);
+window.addEventListener('touchmove',e=>{if(!drag)return;vy+=(e.touches[0].clientX-px)*RS;vx+=(e.touches[0].clientY-py)*RS*0.55;px=e.touches[0].clientX;py=e.touches[0].clientY},{passive:true});
+canvas.addEventListener('wheel',e=>{camera.fov=Math.max(42,Math.min(95,camera.fov+e.deltaY*0.04));camera.updateProjectionMatrix()},{passive:true});
+
+function updateCam(){
+  vy*=DAMP;vx*=DAMP;ry+=vy;rx+=vx;
+  rx=Math.max(-MX,Math.min(MX,rx));
+  const qY=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),ry);
+  const qX=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),rx);
+  camera.quaternion.copy(qY).multiply(qX);
+}
+
+/* ANIMATE */
+const clock=new THREE.Clock();
+let t=0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=clock.getDelta(); t+=dt;
+  updateCam();
+  if(pSys){
+    const pos=pSys.geometry.attributes.position;
+    const vel=pSys.geometry.attributes.vel;
+    const rain=pSys.userData.rain;
+    const spd=rain?2.2:0.45;
+    for(let i=0;i<pSys.userData.count;i++){
+      if(rain){
+        pos.setY(i,pos.getY(i)-vel.getX(i)*spd);
+        if(pos.getY(i)<-100) pos.setY(i,180+Math.random()*120);
+      } else {
+        pos.setY(i,pos.getY(i)+vel.getX(i)*spd*0.18);
+        if(pos.getY(i)>180) pos.setY(i,-80-Math.random()*60);
+      }
+    }
+    pos.needsUpdate=true;
+    pSys.rotation.y+=dt*0.005;
+    pSys.material.opacity=0.32+Math.sin(t*0.35)*0.06;
+  }
+  // Subtle sky drift
+  if(sMat.map){ sMat.map.offset.x=t*0.000055; sMat.map.needsUpdate=true; }
+  renderer.render(scene,camera);
+}
+animate();
+
+/* ═══════════════════════════════════
+   SCENE LOAD
+═══════════════════════════════════ */
+let curId='fuchun';
+const texCache={};
+
+function loadScene(id){
+  const cfg=SD.find(s=>s.id===id); if(!cfg)return;
+  curId=id;
+  document.getElementById('hname').textContent=cfg.name;
+  document.getElementById('sadapt').textContent=cfg.mood;
+  document.querySelectorAll('.swb').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
+
+  // Try real image first, fallback to procedural
+  const img=new Image();
+  img.onload=()=>{
+    const t=new THREE.Texture(img);
+    t.wrapS=THREE.RepeatWrapping; t.needsUpdate=true;
+    sMat.map=t; sMat.needsUpdate=true;
+  };
+  img.onerror=()=>{
+    // Procedural fallback
+    if(!texCache[id]){
+      const seed=Array.from(id).reduce((a,c)=>a+c.charCodeAt(0)*31,0);
+      texCache[id]=buildTex(cfg.type,seed);
+    }
+    sMat.map=texCache[id]; sMat.needsUpdate=true;
+  };
+  img.src=cfg.img;
+
+  // Particles
+  const rain=cfg.type==='rain_garden';
+  const pCfg={
+    ink_river:    {color:0xb8a870,count:320,size:1.5},
+    zen_peak:     {color:0xb8b0d0,count:220,size:1.3},
+    stream_forest:{color:0x88c880,count:280,size:1.4},
+    rain_garden:  {color:0x90a8d0,count:700,size:0.9},
+    study_room:   {color:0xc89840,count:120,size:1.1},
+    bamboo_grove: {color:0x80c870,count:300,size:1.4},
+  }[cfg.type];
+  mkParticles(pCfg.color,pCfg.count,pCfg.size,rain);
+}
+
+/* BREATH */
+const bStates=['缓缓吸气','屏息片刻','缓缓呼气','自然呼吸'];
+const bDurs=[3500,1500,4500,1200];
+let bIdx=0;
+(function cycle(){
+  document.getElementById('bst').textContent=bStates[bIdx];
+  bIdx=(bIdx+1)%bStates.length;
+  setTimeout(cycle,bDurs[bIdx]);
+})();
+
+/* AUDIO */
+const aState={n:false,m:true};
+function tog(k){
+  aState[k]=!aState[k];
+  document.getElementById(k==='n'?'an':'am').classList.toggle('on',aState[k]);
+}
+
+/* UI BUILD */
+const grid=document.getElementById('grid');
+const sw=document.getElementById('sw');
+const nums=['一','二','三','四','五','六'];
+SD.forEach((s,i)=>{
+  const card=document.createElement('div');
+  card.className='sc';
+  card.innerHTML=`<div class="sc-n">${nums[i]}</div><div class="sc-tag">${s.tag}</div><div class="sc-name">${s.name}</div><div class="sc-desc">${s.desc}</div><div class="sc-mood">· ${s.mood}</div><div class="sc-enter">进入 →</div>`;
+  card.onclick=()=>enter(s.id);
+  grid.appendChild(card);
+  const btn=document.createElement('button');
+  btn.className='swb'+(i===0?' on':'');
+  btn.dataset.id=s.id; btn.textContent=s.name;
+  btn.onclick=()=>enter(s.id);
+  sw.appendChild(btn);
+});
+
+/* PAGE FLOW */
+function showSel(){
+  document.getElementById('hud').classList.remove('on');
+  document.getElementById('sel').classList.add('on');
+}
+function enter(id){
+  const ov=document.getElementById('ov');
+  ov.classList.add('on');
+  setTimeout(()=>{
+    loadScene(id);
+    document.getElementById('sel').classList.remove('on');
+    document.getElementById('hud').classList.add('on');
+    ov.classList.remove('on');
+  },480);
+}
+
+/* BOOT */
+(function boot(){
+  const bar=document.getElementById('ldf');
+  let p=0;
+  // Pre-build first scene texture
+  const seed=Array.from('fuchun').reduce((a,c)=>a+c.charCodeAt(0)*31,0);
+  texCache['fuchun']=buildTex('ink_river',seed);
+  sMat.map=texCache['fuchun']; sMat.needsUpdate=true;
+  mkParticles(0xb8a870,320,1.5,false);
+  const iv=setInterval(()=>{
+    p+=10+Math.random()*15; bar.style.width=Math.min(p,94)+'%';
+    if(p>=100){
+      clearInterval(iv); bar.style.width='100%';
+      setTimeout(()=>{
+        document.getElementById('load').classList.add('out');
+        setTimeout(()=>{
+          document.getElementById('load').style.display='none';
+          document.getElementById('sel').classList.add('on');
+        },1000);
+      },300);
+    }
+  },100);
+})();
+</script>
+</body>
+</html>
