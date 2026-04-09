@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>疗愈空间</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1410;
+    --ink-light: #3d3228;
+    --ink-mist: rgba(26,20,16,0.12);
+    --paper: #f5f0e8;
+    --paper-warm: #ede5d4;
+    --mist: #e8e0d0;
+    --accent-gold: #b8965a;
+    --accent-green: #5a7a5c;
+    --accent-blue: #4a6a8a;
+    --seal-red: #c0392b;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  /* ── PAGE SYSTEM ── */
+  body { background: var(--paper); font-family: 'Noto Serif SC', serif; overflow-x: hidden; cursor: default; }
+  .page { position: fixed; inset: 0; transition: opacity 0.8s ease, transform 0.8s ease; }
+  .page.hidden { opacity: 0; pointer-events: none; transform: scale(1.02); }
+
+  /* ── CUSTOM CURSOR ── */
+  .cursor { position: fixed; width: 24px; height: 24px; border: 1px solid var(--ink); border-radius: 50%; pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s; mix-blend-mode: multiply; }
+  .cursor.hover { width: 40px; height: 40px; background: rgba(26,20,16,0.08); }
+
+  /* ── NOISE OVERLAY ── */
+  .noise { position: fixed; inset: 0; z-index: 1000; pointer-events: none; opacity: 0.03; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); }
+
+  /* ════════════════════════
+     HOME PAGE
+  ════════════════════════ */
+  #home { background: var(--paper); display: flex; flex-direction: column; }
+
+  /* Ink wash sky */
+  .home-sky {
+    position: absolute; top: 0; left: 0; right: 0; height: 60%;
+    background: linear-gradient(180deg, #ddd5c4 0%, #e8e0d0 40%, transparent 100%);
+    overflow: hidden;
+  }
+  .mountain-layer { position: absolute; bottom: 0; left: 0; right: 0; }
+
+  /* Header */
+  .home-header {
+    position: relative; z-index: 10;
+    padding: 3rem 4rem 0;
+    display: flex; align-items: flex-start; justify-content: space-between;
+  }
+  .logo { font-family: 'Ma Shan Zheng', cursive; font-size: 1.1rem; color: var(--ink-light); letter-spacing: 0.3em; }
+  .seal {
+    width: 42px; height: 42px; border: 1.5px solid var(--seal-red);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Ma Shan Zheng', cursive; font-size: 0.7rem; color: var(--seal-red);
+    letter-spacing: 0.05em; line-height: 1.3; text-align: center;
+    transform: rotate(-8deg);
+  }
+
+  /* Hero */
+  .home-hero {
+    position: relative; z-index: 10;
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 2rem;
+    min-height: 100vh;
+  }
+  .hero-eyebrow {
+    font-size: 0.7rem; letter-spacing: 0.5em; color: var(--ink-light);
+    opacity: 0.5; margin-bottom: 1.5rem;
+    text-transform: uppercase;
+  }
+  .hero-title {
+    font-family: 'ZCOOL XiaoWei', serif;
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
+    color: var(--ink); line-height: 1.1; text-align: center;
+    letter-spacing: 0.1em;
+    animation: fadeUp 1.2s ease both;
+  }
+  .hero-title span { color: var(--accent-gold); }
+  .hero-sub {
+    margin-top: 1.2rem; font-size: 0.85rem; color: var(--ink-light);
+    opacity: 0.6; letter-spacing: 0.3em; text-align: center;
+    animation: fadeUp 1.2s 0.2s ease both;
+  }
+
+  /* divider */
+  .ink-divider {
+    width: 1px; height: 40px; background: var(--ink); opacity: 0.2;
+    margin: 2.5rem auto;
+    animation: fadeUp 1s 0.4s ease both;
+  }
+
+  /* Scene categories */
+  .categories {
+    display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center;
+    padding: 0 2rem;
+    animation: fadeUp 1s 0.5s ease both;
+  }
+  .category-card {
+    position: relative; cursor: pointer;
+    width: 280px; padding: 2rem 1.8rem;
+    background: rgba(245,240,232,0.7);
+    border: 0.5px solid rgba(26,20,16,0.15);
+    backdrop-filter: blur(4px);
+    transition: all 0.4s ease;
+    overflow: hidden;
+  }
+  .category-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(184,150,90,0.06) 0%, transparent 60%);
+    opacity: 0; transition: opacity 0.4s;
+  }
+  .category-card:hover { transform: translateY(-4px); border-color: rgba(26,20,16,0.3); box-shadow: 0 20px 40px rgba(26,20,16,0.08); }
+  .category-card:hover::before { opacity: 1; }
+  .card-type { font-size: 0.65rem; letter-spacing: 0.5em; color: var(--accent-gold); margin-bottom: 0.8rem; opacity: 0.8; }
+  .card-title { font-family: 'ZCOOL XiaoWei', serif; font-size: 1.4rem; color: var(--ink); letter-spacing: 0.1em; margin-bottom: 0.6rem; }
+  .card-subtitle { font-size: 0.75rem; color: var(--ink-light); opacity: 0.5; letter-spacing: 0.2em; margin-bottom: 1.2rem; }
+  .card-scenes { display: flex; flex-direction: column; gap: 0.4rem; }
+  .scene-item {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-size: 0.78rem; color: var(--ink-light); opacity: 0.7;
+    padding: 0.3rem 0; border-top: 0.5px solid rgba(26,20,16,0.06);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .scene-item:hover { opacity: 1; padding-left: 4px; }
+  .scene-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--accent-gold); flex-shrink: 0; }
+  .card-arrow {
+    position: absolute; bottom: 1.5rem; right: 1.8rem;
+    font-size: 1rem; color: var(--ink); opacity: 0.2;
+    transition: all 0.3s; transform: rotate(-45deg);
+  }
+  .category-card:hover .card-arrow { opacity: 0.5; transform: rotate(-45deg) translate(2px,-2px); }
+
+  /* Hearing card special */
+  .category-card.hearing { background: rgba(232,228,220,0.7); }
+  .audio-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; }
+  .audio-tag {
+    padding: 0.25rem 0.7rem; border: 0.5px solid rgba(26,20,16,0.15);
+    font-size: 0.7rem; color: var(--ink-light); opacity: 0.6;
+    letter-spacing: 0.1em; border-radius: 2px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .audio-tag:hover { opacity: 1; background: rgba(26,20,16,0.05); }
+
+  /* Scroll hint */
+  .scroll-hint {
+    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    font-size: 0.65rem; letter-spacing: 0.4em; color: var(--ink);
+    opacity: 0.3; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    animation: breathe 3s ease-in-out infinite;
+  }
+  .scroll-line { width: 1px; height: 30px; background: var(--ink); opacity: 0.4; }
+
+
+  /* ════════════════════════
+     SCENE PAGE
+  ════════════════════════ */
+  #scene { overflow: hidden; }
+  .scene-canvas {
+    position: absolute; inset: 0;
+    background: #1a1410;
+    overflow: hidden;
+  }
+  canvas#inkCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* Scene HUD */
+  .scene-hud {
+    position: absolute; inset: 0; z-index: 20;
+    pointer-events: none;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+
+  /* Top bar */
+  .hud-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.5rem 2rem;
+    pointer-events: all;
+    background: linear-gradient(180deg, rgba(26,20,16,0.5) 0%, transparent 100%);
+  }
+  .back-btn {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-size: 0.72rem; letter-spacing: 0.3em; color: rgba(245,240,232,0.7);
+    cursor: pointer; transition: all 0.2s; border: none; background: none;
+  }
+  .back-btn:hover { color: rgba(245,240,232,1); }
+  .back-arrow { font-size: 1rem; }
+  .scene-name-hud { font-family: 'ZCOOL XiaoWei', serif; font-size: 1rem; color: rgba(245,240,232,0.6); letter-spacing: 0.3em; }
+  .scene-nav-dots { display: flex; gap: 8px; align-items: center; }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; border: 1px solid rgba(245,240,232,0.4); cursor: pointer; transition: all 0.2s; pointer-events: all; }
+  .nav-dot.active { background: rgba(245,240,232,0.7); border-color: rgba(245,240,232,0.7); }
+
+  /* Breath circle - center */
+  .breath-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    pointer-events: none;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .breath-ring-outer {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 1px solid rgba(245,240,232,0.15);
+    display: flex; align-items: center; justify-content: center;
+    animation: breatheRingOuter 6s ease-in-out infinite;
+  }
+  .breath-ring-mid {
+    width: 88px; height: 88px; border-radius: 50%;
+    border: 1px solid rgba(245,240,232,0.25);
+    display: flex; align-items: center; justify-content: center;
+    animation: breatheRingMid 6s ease-in-out infinite;
+  }
+  .breath-ring-inner {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(245,240,232,0.08);
+    border: 1px solid rgba(245,240,232,0.4);
+    display: flex; align-items: center; justify-content: center;
+    animation: breatheRingInner 6s ease-in-out infinite;
+  }
+  .breath-text { font-size: 0.55rem; color: rgba(245,240,232,0.5); letter-spacing: 0.3em; animation: breatheText 6s ease-in-out infinite; }
+  @keyframes breatheRingOuter { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+  @keyframes breatheRingMid { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+  @keyframes breatheRingInner { 0%,100%{transform:scale(1);opacity:0.6} 50%{transform:scale(1.25);opacity:1} }
+  @keyframes breatheText { 0%,100%{opacity:0.4} 25%{opacity:0.8} 50%{opacity:0.4} 75%{opacity:0.8} }
+
+  /* Bottom controls */
+  .hud-bottom {
+    padding: 1.5rem 2rem 2rem;
+    background: linear-gradient(0deg, rgba(26,20,16,0.6) 0%, transparent 100%);
+    pointer-events: all;
+  }
+  .controls-row {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem;
+  }
+  .audio-controls { display: flex; gap: 0.8rem; align-items: center; }
+  .audio-btn {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 0.9rem; border-radius: 2px;
+    border: 0.5px solid rgba(245,240,232,0.25);
+    background: rgba(245,240,232,0.06);
+    color: rgba(245,240,232,0.6); font-size: 0.7rem; letter-spacing: 0.15em;
+    cursor: pointer; transition: all 0.2s; font-family: 'Noto Serif SC', serif;
+  }
+  .audio-btn:hover { background: rgba(245,240,232,0.12); color: rgba(245,240,232,0.9); }
+  .audio-btn.active { background: rgba(245,240,232,0.15); color: rgba(245,240,232,1); border-color: rgba(245,240,232,0.5); }
+  .audio-indicator { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: none; }
+  .audio-btn.active .audio-indicator { animation: blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .scene-info-bottom { text-align: right; }
+  .scene-adapt { font-size: 0.65rem; color: rgba(245,240,232,0.4); letter-spacing: 0.2em; }
+  .scene-adapt-val { font-size: 0.72rem; color: rgba(245,240,232,0.65); letter-spacing: 0.15em; }
+
+  /* Scene switch panel */
+  .scene-switch {
+    display: flex; gap: 0.6rem; justify-content: center; margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+  .switch-btn {
+    padding: 0.3rem 0.8rem; font-size: 0.65rem; letter-spacing: 0.2em;
+    border: 0.5px solid rgba(245,240,232,0.2);
+    background: transparent; color: rgba(245,240,232,0.45);
+    cursor: pointer; font-family: 'Noto Serif SC', serif;
+    transition: all 0.2s; border-radius: 1px;
+  }
+  .switch-btn:hover { border-color: rgba(245,240,232,0.5); color: rgba(245,240,232,0.8); }
+  .switch-btn.active { border-color: rgba(245,240,232,0.6); color: rgba(245,240,232,1); background: rgba(245,240,232,0.08); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp { from { opacity:0; transform: translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes breathe { 0%,100%{opacity:0.3} 50%{opacity:0.6} }
+
+  /* Mist animation on home */
+  .mist-layer {
+    position: absolute; bottom: 0; left: -20%; width: 140%; height: 180px;
+    background: linear-gradient(180deg, transparent 0%, rgba(245,240,232,0.8) 60%, rgba(245,240,232,1) 100%);
+    animation: mistDrift 12s ease-in-out infinite alternate;
+  }
+  @keyframes mistDrift { from { transform: translateX(0) scaleX(1); } to { transform: translateX(3%) scaleX(0.98); } }
+
+  /* Ink particles */
+  .ink-particle {
+    position: absolute; border-radius: 50%;
+    background: rgba(26,20,16,0.06);
+    animation: floatParticle linear infinite;
+    pointer-events: none;
+  }
+  @keyframes floatParticle {
+    from { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 0.5; }
+    to { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="noise"></div>
+
+<!-- ══════════ HOME PAGE ══════════ -->
+<div class="page" id="home">
+
+  <!-- Ink sky background with SVG mountains -->
+  <div class="home-sky">
+    <svg viewBox="0 0 1440 400" preserveAspectRatio="none" style="position:absolute;bottom:0;width:100%;height:100%">
+      <defs>
+        <filter id="blur1"><feGaussianBlur stdDeviation="8"/></filter>
+        <filter id="blur2"><feGaussianBlur stdDeviation="4"/></filter>
+        <filter id="blur3"><feGaussianBlur stdDeviation="1.5"/></filter>
+      </defs>
+      <!-- Far mountains - very faint -->
+      <path d="M0,320 Q180,160 360,200 Q540,240 720,170 Q900,100 1080,180 Q1260,240 1440,200 L1440,400 L0,400Z"
+            fill="rgba(120,110,95,0.12)" filter="url(#blur1)"/>
+      <!-- Mid mountains -->
+      <path d="M0,360 Q120,240 280,280 Q440,320 600,250 Q760,180 920,260 Q1080,320 1240,270 Q1360,240 1440,280 L1440,400 L0,400Z"
+            fill="rgba(80,70,55,0.18)" filter="url(#blur2)"/>
+      <!-- Near mountains -->
+      <path d="M0,400 Q100,310 220,340 Q380,370 500,320 Q640,270 780,330 Q920,380 1060,340 Q1200,300 1340,350 L1440,370 L1440,400Z"
+            fill="rgba(60,50,38,0.22)" filter="url(#blur3)"/>
+      <!-- Trees silhouette -->
+      <g fill="rgba(40,35,28,0.15)">
+        <path d="M20,400 L30,350 L40,400Z"/>
+        <path d="M50,400 L58,360 L66,400Z"/>
+        <path d="M80,400 L90,345 L100,400Z"/>
+        <path d="M1360,400 L1370,355 L1380,400Z"/>
+        <path d="M1395,400 L1405,362 L1415,400Z"/>
+      </g>
+      <!-- Mist at bottom -->
+      <rect x="0" y="360" width="1440" height="40"
+            fill="url(#mistGrad)" opacity="0.6"/>
+      <defs>
+        <linearGradient id="mistGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f5f0e8" stop-opacity="0"/>
+          <stop offset="1" stop-color="#f5f0e8" stop-opacity="1"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="mist-layer"></div>
+  </div>
+
+  <!-- Header -->
+  <div class="home-header">
+    <div class="logo">疗 愈 空 间</div>
+    <div class="seal">心<br>境</div>
+  </div>
+
+  <!-- Hero content -->
+  <div class="home-hero">
+    <p class="hero-eyebrow">healing · space · 2025</p>
+    <h1 class="hero-title">进入<span>疗愈</span>场景吧</h1>
+    <p class="hero-sub">六境 · 静心 · 归于当下</p>
+
+    <div class="ink-divider"></div>
+
+    <div class="categories">
+      <!-- Visual category -->
+      <div class="category-card" onclick="openSceneSelect('visual')">
+        <div class="card-type">视 觉 · Visual</div>
+        <div class="card-title">水墨山水</div>
+        <div class="card-subtitle">沉浸式360°疗愈画境</div>
+        <div class="card-scenes">
+          <div class="scene-item" onclick="event.stopPropagation();enterScene('fuchun')">
+            <span class="scene-dot"></span>富春山居 · 焦虑疏解
+          </div>
+          <div class="scene-item" onclick="event.stopPropagation();enterScene('yunshan')">
+            <span class="scene-dot"></span>云山禅境 · 静心安神
+          </div>
+          <div class="scene-item" onclick="event.stopPropagation();enterScene('xishan')">
+            <span class="scene-dot"></span>溪山行旅 · 疲惫修复
+          </div>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
+
+      <!-- Natural category -->
+      <div class="category-card" onclick="openSceneSelect('natural')">
+        <div class="card-type">场 景 · Scene</div>
+        <div class="card-title">自然中式</div>
+        <div class="card-subtitle">庭院书房 · 归隐之境</div>
+        <div class="card-scenes">
+          <div class="scene-item" onclick="event.stopPropagation();enterScene('tingyu')">
+            <span class="scene-dot"></span>听雨轩窗 · 嘈杂纾解
+          </div>
+          <div class="scene-item" onclick="event.stopPropagation();enterScene('bimo')">
+            <span class="scene-dot"></span>笔墨静心 · 专注提升
+          </div>
+          <div class="scene-item" onclick="event.stopPropagation();enterScene('lanting')">
+            <span class="scene-dot"></span>兰亭曲水 · 心情舒缓
+          </div>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
+
+      <!-- Audio category -->
+      <div class="category-card hearing" onclick="enterScene('audio')">
+        <div class="card-type">听 觉 · Audio</div>
+        <div class="card-title">传统音律</div>
+        <div class="card-subtitle">自由搭配 · 疗愈音景</div>
+        <div class="audio-tags">
+          <span class="audio-tag">古 琴</span>
+          <span class="audio-tag">琵 琶</span>
+          <span class="audio-tag">古 筝</span>
+          <span class="audio-tag">竹 笛</span>
+          <span class="audio-tag">洞 箫</span>
+          <span class="audio-tag">木 鱼</span>
+          <span class="audio-tag">磬 音</span>
+          <span class="audio-tag">流 水</span>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
+    </div>
+
+    <div class="scroll-hint" style="margin-top:2.5rem">
+      <span>拨开云雾</span>
+      <div class="scroll-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SCENE PAGE ══════════ -->
+<div class="page hidden" id="scene">
+  <div class="scene-canvas">
+    <canvas id="inkCanvas"></canvas>
+  </div>
+
+  <div class="scene-hud">
+    <!-- Top -->
+    <div class="hud-top">
+      <button class="back-btn" onclick="goHome()">
+        <span class="back-arrow">←</span> 返 回
+      </button>
+      <div class="scene-name-hud" id="sceneNameHud">富春山居</div>
+      <div class="scene-nav-dots" id="navDots">
+        <div class="nav-dot active" onclick="enterScene('fuchun')"></div>
+        <div class="nav-dot" onclick="enterScene('yunshan')"></div>
+        <div class="nav-dot" onclick="enterScene('xishan')"></div>
+        <div class="nav-dot" onclick="enterScene('tingyu')"></div>
+        <div class="nav-dot" onclick="enterScene('bimo')"></div>
+        <div class="nav-dot" onclick="enterScene('lanting')"></div>
+      </div>
+    </div>
+
+    <!-- Breath guide center -->
+    <div class="breath-center">
+      <div class="breath-ring-outer">
+        <div class="breath-ring-mid">
+          <div class="breath-ring-inner">
+            <div class="breath-text">呼·吸</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom controls -->
+    <div class="hud-bottom">
+      <div class="controls-row">
+        <div class="audio-controls">
+          <button class="audio-btn" id="btn-nature" onclick="toggleAudio('nature')">
+            <span class="audio-indicator"></span> 自然白噪音
+          </button>
+          <button class="audio-btn active" id="btn-music" onclick="toggleAudio('music')">
+            <span class="audio-indicator"></span> 传统疗愈音乐
+          </button>
+        </div>
+        <div class="scene-info-bottom">
+          <div class="scene-adapt">适 配 症 状</div>
+          <div class="scene-adapt-val" id="sceneAdapt">焦虑 · 烦躁 · 压力过载</div>
+        </div>
+      </div>
+      <div class="scene-switch">
+        <button class="switch-btn active" onclick="enterScene('fuchun')">富春山居</button>
+        <button class="switch-btn" onclick="enterScene('yunshan')">云山禅境</button>
+        <button class="switch-btn" onclick="enterScene('xishan')">溪山行旅</button>
+        <button class="switch-btn" onclick="enterScene('tingyu')">听雨轩窗</button>
+        <button class="switch-btn" onclick="enterScene('bimo')">笔墨静心</button>
+        <button class="switch-btn" onclick="enterScene('lanting')">兰亭曲水</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CURSOR ──
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top = e.clientY + 'px';
+});
+document.querySelectorAll('button, .category-card, .scene-item, .audio-tag, .switch-btn, .nav-dot').forEach(el => {
+  el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+  el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+});
+
+// ── SCENE DATA ──
+const scenes = {
+  fuchun:  { name: '富春山居', adapt: '焦虑 · 烦躁 · 压力过载', palette: ['#c8b89a','#a89070','#786448','#504030','#2a1e10'], type: 'ink_mountain' },
+  yunshan: { name: '云山禅境', adapt: '精神内耗 · 失眠 · 注意力涣散', palette: ['#d8d0c4','#b0a898','#888070','#605848','#302820'], type: 'zen_cloud' },
+  xishan:  { name: '溪山行旅', adapt: '情绪低落 · 紧绷 · 疲惫', palette: ['#b8c8b0','#90a888','#687860','#485838','#283018'], type: 'stream' },
+  tingyu:  { name: '听雨轩窗', adapt: '嘈杂环境 · 抑郁 · 思绪杂乱', palette: ['#a8b8c8','#8098b0','#587898','#385878','#183858'], type: 'rain_garden' },
+  bimo:    { name: '笔墨静心', adapt: '考前紧张 · 浮躁 · 专注力差', palette: ['#d0c8b8','#a89880','#806848','#504030','#201810'], type: 'study' },
+  lanting: { name: '兰亭曲水', adapt: '社交压力 · 心情压抑 · 缺乏愉悦感', palette: ['#b8d0b8','#88b088','#589058','#307030','#105010'], type: 'bamboo' },
+};
+let currentScene = 'fuchun';
+let audioState = { nature: false, music: true };
+
+// ── PAGE TRANSITIONS ──
+function goHome() {
+  document.getElementById('scene').classList.add('hidden');
+  document.getElementById('home').classList.remove('hidden');
+}
+function openSceneSelect(type) { enterScene(type === 'visual' ? 'fuchun' : 'tingyu'); }
+
+function enterScene(id) {
+  if (!scenes[id]) return;
+  currentScene = id;
+  const s = scenes[id];
+  document.getElementById('sceneNameHud').textContent = s.name;
+  document.getElementById('sceneAdapt').textContent = s.adapt;
+
+  // Update switch buttons
+  document.querySelectorAll('.switch-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', btn.textContent.trim() === s.name);
+  });
+  // Update nav dots
+  const keys = Object.keys(scenes);
+  document.querySelectorAll('.nav-dot').forEach((dot, i) => {
+    dot.classList.toggle('active', keys[i] === id);
+  });
+
+  drawScene(id);
+  document.getElementById('home').classList.add('hidden');
+  document.getElementById('scene').classList.remove('hidden');
+}
+
+function toggleAudio(type) {
+  audioState[type] = !audioState[type];
+  const btn = document.getElementById('btn-' + type);
+  btn.classList.toggle('active', audioState[type]);
+}
+
+// ── CANVAS DRAWING ──
+const canvas = document.getElementById('inkCanvas');
+const ctx = canvas.getContext('2d');
+let animFrame;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', () => { resizeCanvas(); drawScene(currentScene); });
+resizeCanvas();
+
+function drawScene(id) {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  const s = scenes[id];
+  const p = s.palette;
+  const W = canvas.width, H = canvas.height;
+
+  if (s.type === 'ink_mountain') drawInkMountain(p, W, H);
+  else if (s.type === 'zen_cloud') drawZenCloud(p, W, H);
+  else if (s.type === 'stream') drawStream(p, W, H);
+  else if (s.type === 'rain_garden') drawRainGarden(p, W, H);
+  else if (s.type === 'study') drawStudyRoom(p, W, H);
+  else if (s.type === 'bamboo') drawBamboo(p, W, H);
+}
+
+function drawInkMountain(p, W, H) {
+  ctx.clearRect(0, 0, W, H);
+  // Sky
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#1a1410'); sky.addColorStop(0.4, '#2a2018'); sky.addColorStop(1, '#3a3028');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  // Stars
+  for (let i = 0; i < 80; i++) {
+    ctx.fillStyle = `rgba(245,240,225,${Math.random() * 0.5 + 0.1})`;
+    ctx.beginPath(); ctx.arc(Math.random() * W, Math.random() * H * 0.5, Math.random() * 1.2 + 0.3, 0, Math.PI * 2); ctx.fill();
+  }
+  // Moon
+  const moonGlow = ctx.createRadialGradient(W * 0.78, H * 0.18, 0, W * 0.78, H * 0.18, 80);
+  moonGlow.addColorStop(0, 'rgba(245,235,200,0.25)'); moonGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = moonGlow; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(245,235,200,0.9)';
+  ctx.beginPath(); ctx.arc(W * 0.78, H * 0.18, 36, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(30,22,14,0.4)'; // Shadow crescent
+  ctx.beginPath(); ctx.arc(W * 0.78 - 12, H * 0.18, 34, 0, Math.PI * 2); ctx.fill();
+  // Distant mountains (many layers, very faint)
+  const mtDefs = [
+    { y: 0.72, h: 0.25, segs: 5, alpha: 0.12, blur: 12 },
+    { y: 0.68, h: 0.22, segs: 4, alpha: 0.2, blur: 6 },
+    { y: 0.62, h: 0.28, segs: 3, alpha: 0.3, blur: 3 },
+    { y: 0.55, h: 0.3, segs: 3, alpha: 0.5, blur: 1 },
+    { y: 0.5, h: 0.32, segs: 2, alpha: 0.7, blur: 0 },
+  ];
+  for (const mt of mtDefs) {
+    if (mt.blur) { ctx.save(); ctx.filter = `blur(${mt.blur}px)`; }
+    ctx.fillStyle = `rgba(26,20,10,${mt.alpha})`;
+    ctx.beginPath(); ctx.moveTo(0, H);
+    const pts = [0];
+    for (let i = 0; i <= mt.segs * 4; i++) pts.push(Math.random());
+    let cx = 0;
+    for (let i = 0; i < mt.segs; i++) {
+      const peakX = (i + 0.3 + Math.random() * 0.4) / mt.segs * W;
+      const peakY = H * mt.y - H * mt.h * (0.6 + Math.random() * 0.4);
+      const base1 = i / mt.segs * W;
+      const base2 = (i + 1) / mt.segs * W;
+      ctx.bezierCurveTo(base1 + (peakX - base1) * 0.3, H * mt.y, peakX - 20, peakY + 10, peakX, peakY);
+      ctx.bezierCurveTo(peakX + 20, peakY + 10, base2 - (base2 - peakX) * 0.3, H * mt.y, base2, H * mt.y);
+    }
+    ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+    if (mt.blur) ctx.restore();
+  }
+  // River (horizontal reflection strip)
+  const river = ctx.createLinearGradient(0, H * 0.75, 0, H * 0.85);
+  river.addColorStop(0, 'rgba(184,160,100,0.08)'); river.addColorStop(0.5, 'rgba(184,160,100,0.15)'); river.addColorStop(1, 'rgba(184,160,100,0.04)');
+  ctx.fillStyle = river; ctx.fillRect(0, H * 0.75, W, H * 0.12);
+  // Moon reflection
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = `rgba(245,230,180,${0.04 - i * 0.006})`;
+    ctx.fillRect(W * 0.74 - i * 8, H * 0.76 + i * 6, 24 + i * 16, 2);
+  }
+  // Mist bands
+  for (let m = 0; m < 3; m++) {
+    const mistY = H * (0.58 + m * 0.06);
+    const mist = ctx.createLinearGradient(0, mistY, 0, mistY + 20);
+    mist.addColorStop(0, 'rgba(200,185,160,0)'); mist.addColorStop(0.5, `rgba(200,185,160,${0.06 + m * 0.03})`); mist.addColorStop(1, 'rgba(200,185,160,0)');
+    ctx.fillStyle = mist; ctx.fillRect(0, mistY, W, 20);
+  }
+  // Reed silhouettes
+  for (let r = 0; r < 18; r++) {
+    const rx = (r / 18) * W * 0.5 + Math.random() * 30;
+    ctx.strokeStyle = `rgba(26,20,10,${0.3 + Math.random() * 0.4})`; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(rx, H);
+    ctx.quadraticCurveTo(rx + (Math.random() * 20 - 10), H * 0.78, rx + (Math.random() * 30 - 15), H * 0.72);
+    ctx.stroke();
+    ctx.fillStyle = `rgba(26,20,10,0.5)`;
+    ctx.beginPath(); ctx.ellipse(rx + Math.random() * 6 - 3, H * 0.72, 3, 12, 0.3, 0, Math.PI * 2); ctx.fill();
+  }
+  // Lone boat
+  ctx.fillStyle = 'rgba(26,20,10,0.6)';
+  ctx.beginPath(); ctx.moveTo(W * 0.35, H * 0.8); ctx.bezierCurveTo(W * 0.35 + 8, H * 0.8 - 5, W * 0.35 + 32, H * 0.8 - 5, W * 0.35 + 40, H * 0.8); ctx.fill();
+  // Vignette
+  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+}
+
+function drawZenCloud(p, W, H) {
+  ctx.clearRect(0, 0, W, H);
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#0f0d0a'); sky.addColorStop(1, '#2a2520');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  // Cloud sea
+  for (let c = 0; c < 5; c++) {
+    ctx.save(); ctx.filter = `blur(${20 + c * 8}px)`;
+    ctx.fillStyle = `rgba(220,210,190,${0.04 + c * 0.02})`;
+    ctx.beginPath();
+    ctx.ellipse(W * (0.1 + c * 0.2), H * (0.55 + Math.sin(c) * 0.08), W * 0.25, H * 0.08, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.restore();
+  }
+  // Single massive mountain (极简)
+  ctx.save(); ctx.filter = 'blur(2px)';
+  ctx.fillStyle = 'rgba(20,16,12,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(W * 0.1, H); ctx.bezierCurveTo(W * 0.2, H * 0.7, W * 0.4, H * 0.2, W * 0.5, H * 0.12);
+  ctx.bezierCurveTo(W * 0.6, H * 0.2, W * 0.8, H * 0.7, W * 0.9, H);
+  ctx.closePath(); ctx.fill(); ctx.restore();
+  // Pine tree on left
+  const treeX = W * 0.15, treeBaseY = H * 0.72;
+  for (let i = 0; i < 4; i++) {
+    const layerY = treeBaseY - i * 30;
+    ctx.fillStyle = `rgba(20,18,14,${0.5 + i * 0.1})`;
+    ctx.beginPath();
+    ctx.moveTo(treeX, layerY - 25 + i * 5);
+    ctx.lineTo(treeX - 20 + i * 3, layerY);
+    ctx.lineTo(treeX + 20 - i * 3, layerY);
+    ctx.closePath(); ctx.fill();
+  }
+  // Mist veil
+  for (let m = 0; m < 4; m++) {
+    ctx.save(); ctx.filter = `blur(${15 + m * 5}px)`;
+    ctx.fillStyle = `rgba(210,200,180,${0.06})`;
+    ctx.fillRect(0, H * (0.45 + m * 0.06), W, H * 0.06);
+    ctx.restore();
+  }
+  // Vignette
+  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.9);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.7)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+}
+
+function drawStream(p, W, H) {
+  ctx.clearRect(0, 0, W, H);
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#1a2418'); sky.addColorStop(0.5, '#2a3828'); sky.addColorStop(1, '#1a2418');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+  // Light rays through mist
+  for (let r = 0; r < 6; r++) {
+    const rx = W * (0.2 + r * 0.12);
+    ctx.save(); ctx.filter = 'blur(18px)';
+    ctx.fillStyle = `rgba(200,220,180,0.06)`;
+    ctx.beginPath(); ctx.moveTo(rx, 0); ctx.lineTo(rx + 60, H); ctx.lineTo(rx + 120, H); ctx.lineTo(rx + 80, 0); ctx.fill();
+    ctx.restore();
+  }
+  // Forest layers
+  for (let l = 0; l < 4; l++) {
+    ctx.fillStyle = `rgba(15,25,12,${0.3 + l * 0.15})`;
+    for (let t = 0; t < 8 - l; t++) {
+      const tx = (t / (8 - l)) * W + (l % 2 === 0 ? 0 : W / (8 - l) / 2);
+      const h = H * (0.25 + l * 0.06) * (0.8 + Math.random() * 0.4);
+      const w = W * 0.05 * (1 - l * 0.1);
+      ctx.beginPath();
+      ctx.moveTo(tx, H * 0.9 - l * 20);
+      ctx.bezierCurveTo(tx - w, H * 0.9 - l * 20 - h * 0.4, tx - w * 0.6, H * 0.9 - l * 20 - h, tx, H * 0.9 - l * 20 - h);
+      ctx.bezierCurveTo(tx + w * 0.6, H * 0.9 - l * 20 - h, tx + w, H * 0.9 - l * 20 - h * 0.4, tx, H * 0.9 - l * 20);
+      ctx.fill();
+    }
+  }
+  // Stream
+  const stream = ctx.createLinearGradient(0, H * 0.65, 0, H * 0.75);
+  stream.addColorStop(0, 'rgba(80,120,90,0.2)'); stream.addColorStop(0.5, 'rgba(100,140,110,0.35)'); stream.addColorStop(1, 'rgba(60,100,70,0.1)');
+  ctx.fillStyle = stream;
+  ctx.beginPath(); ctx.moveTo(W * 0.2, H); ctx.bezierCurveTo(W * 0.3, H * 0.8, W * 0.4, H * 0.68, W * 0.5, H * 0.66); ctx.bezierCurveTo(W * 0.6, H * 0.65, W * 0.7, H * 0.7, W * 0.8, H);
+  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+  // Stone bridge
+  ctx.fillStyle = 'rgba(40,50,35,0.7)';
+  ctx.beginPath(); ctx.ellipse(W * 0.5, H * 0.69, W * 0.06, H * 0.015, 0, 0, Math.PI * 2); ctx.fill();
+  // Ground mist
+  ctx.save(); ctx.filter = 'blur(20px)';
+  ctx.fillStyle = 'rgba(180,200,175,0.15)';
+  ctx.fillRect(0, H * 0.75, W, H * 0.12); ctx.restore();
+  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.85);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.65)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+}
+
+function drawRainGarden(p, W, H) {
+  ctx.clearRect(0, 0, W, H);
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0d1520'); bg.addColorStop(1, '#1a2535');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  // Rain
+  for (let r = 0; r < 180; r++) {
+    const rx = Math.random() * W, ry = Math.random() * H;
+    ctx.strokeStyle = `rgba(160,190,220,${Math.random() * 0.3 + 0.05})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx + 4, ry + 14); ctx.stroke();
+  }
+  // Window frame
+  const fw = W * 0.55, fh = H * 0.7, fx = (W - fw) / 2, fy = (H - fh) / 2;
+  ctx.strokeStyle = 'rgba(160,130,80,0.6)'; ctx.lineWidth = 3;
+  ctx.strokeRect(fx, fy, fw, fh);
+  ctx.strokeRect(fx + fw / 2 - 1.5, fy, 3, fh); // vertical mullion
+  ctx.strokeRect(fx, fy + fh / 2 - 1.5, fw, 3); // horizontal mullion
+  // Window glow (inside warm)
+  const windowGlow = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, fw * 0.6);
+  windowGlow.addColorStop(0, 'rgba(200,160,80,0.08)'); windowGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = windowGlow; ctx.fillRect(0, 0, W, H);
+  // Lotus pond outside
+  ctx.save(); ctx.filter = 'blur(3px)';
+  for (let l = 0; l < 6; l++) {
+    ctx.fillStyle = `rgba(30,80,60,${0.3 + Math.random() * 0.3})`;
+    ctx.beginPath(); ctx.ellipse(fx + 60 + Math.random() * (fw - 120), fy + fh * 0.7 + Math.random() * fh * 0.2, 20 + Math.random() * 20, 8 + Math.random() * 8, Math.random() * 0.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+  // Banana leaf silhouette
+  ctx.save(); ctx.filter = 'blur(1px)';
+  ctx.strokeStyle = 'rgba(20,60,30,0.7)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(fx + fw * 0.8, fy + fh); ctx.bezierCurveTo(fx + fw * 0.9, fy + fh * 0.6, fx + fw + 40, fy + fh * 0.3, fx + fw + 60, fy + fh * 0.2); ctx.stroke();
+  ctx.restore();
+  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.15, W / 2, H / 2, H * 0.9);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.7)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+}
+
+function drawStudyRoom(p, W, H) {
+  ctx.clearRect(0, 0, W, H);
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#100e08'); bg.addColorStop(1, '#201a10');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  // Candle glow
+  const candleX = W * 0.6, candleY = H * 0.55;
+  const candleGlow = ctx.createRadialGradient(candleX, candleY, 0, candleX, candleY, W * 0.3);
+  candleGlow.addColorStop(0, 'rgba(255,200,80,0.15)'); candleGlow.addColorStop(0.4, 'rgba(200,130,40,0.06)'); candleGlow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = candleGlow; ctx.fillRect(0, 0, W, H);
+  // Desk surface
+  ctx.fillStyle = 'rgba(40,30,15,0.8)';
+  ctx.beginPath(); ctx.moveTo(0, H * 0.62); ctx.lineTo(W, H * 0.58); ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.fill();
+  // Scroll / paper
+  ctx.fillStyle = 'rgba(220,208,180,0.7)';
+  ctx.fillRect(W * 0.25, H * 0.38, W * 0.35, H * 0.22);
+  ctx.strokeStyle = 'rgba(160,130,80,0.4)'; ctx.lineWidth = 1;
+  ctx.strokeRect(W * 0.25, H * 0.38, W * 0.35, H * 0.22);
+  // Ink brushstrokes on paper
+  ctx.strokeStyle = 'rgba(20,15,8,0.6)'; ctx.lineWidth = 1.5;
+  for (let l = 0; l < 5; l++) {
+    ctx.beginPath(); ctx.moveTo(W * 0.3, H * 0.42 + l * 14);
+    ctx.bezierCurveTo(W * 0.38, H * 0.42 + l * 14 - 3, W * 0.47, H * 0.42 + l * 14 + 3, W * 0.55, H * 0.42 + l * 14); ctx.stroke();
+  }
+  // Ink stone
+  ctx.fillStyle = 'rgba(15,12,8,0.9)';
+  ctx.beginPath(); ctx.ellipse(W * 0.68, H * 0.6, 30, 18, 0, 0, Math.PI * 2); ctx.fill();
+  // Brush
+  ctx.strokeStyle = 'rgba(100,80,40,0.7)'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(W * 0.73, H * 0.42); ctx.lineTo(W * 0.68, H * 0.62); ctx.stroke();
+  ctx.fillStyle = 'rgba(20,15,8,0.8)';
+  ctx.beginPath(); ctx.moveTo(W * 0.68, H * 0.62); ctx.lineTo(W * 0.665, H * 0.67); ctx.lineTo(W * 0.695, H * 0.67); ctx.fill();
+  // Bamboo shadow on wall
+  ctx.save(); ctx.filter = 'blur(3px)';
+  ctx.strokeStyle = 'rgba(80,100,60,0.15)'; ctx.lineWidth = 8;
+  for (let b = 0; b < 5; b++) {
+    const bx = W * 0.1 + b * W * 0.08;
+    ctx.beginPath(); ctx.moveTo(bx, 0); ctx.lineTo(bx + 15, H * 0.55); ctx.stroke();
+    for (let s = 0; s < 4; s++) {
+      ctx.beginPath(); ctx.moveTo(bx + s * 4, H * (0.12 + s * 0.1)); ctx.lineTo(bx - 20, H * (0.08 + s * 0.1)); ctx.stroke();
+    }
+  }
+  ctx.restore();
+  // Incense smoke
+  ctx.save(); ctx.filter = 'blur(4px)';
+  ctx.strokeStyle = 'rgba(200,180,140,0.15)'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  const smokeX = W * 0.82;
+  ctx.moveTo(smokeX, H * 0.55);
+  ctx.bezierCurveTo(smokeX - 15, H * 0.45, smokeX + 15, H * 0.35, smokeX - 8, H * 0.25);
+  ctx.bezierCurveTo(smokeX + 10, H * 0.18, smokeX - 12, H * 0.1, smokeX, H * 0.05);
+  ctx.stroke(); ctx.restore();
+  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.8);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.75)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+}
+
+function drawBamboo(p, W, H) {
+  ctx.clearRect(0, 0, W, H);
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#0d1a0d'); bg.addColorStop(0.5, '#152015'); bg.addColorStop(1, '#0a150a');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  // Sunlight dapple
+  ctx.save(); ctx.filter = 'blur(25px)';
+  for (let i = 0; i < 5; i++) {
+    ctx.fillStyle = `rgba(180,220,140,0.06)`;
+    ctx.beginPath(); ctx.arc(Math.random() * W, Math.random() * H, 60 + Math.random() * 80, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+  // Bamboo stalks
+  for (let b = 0; b < 14; b++) {
+    const bx = (b / 14) * W + Math.random() * (W / 14) - W / 28;
+    const alpha = 0.25 + Math.random() * 0.4;
+    ctx.strokeStyle = `rgba(40,70,30,${alpha})`; ctx.lineWidth = 6 + Math.random() * 8;
+    ctx.beginPath(); ctx.moveTo(bx, H); ctx.bezierCurveTo(bx + (Math.random() * 30 - 15), H * 0.6, bx + (Math.random() * 40 - 20), H * 0.3, bx + (Math.random() * 20 - 10), 0); ctx.stroke();
+    // Nodes
+    for (let n = 1; n < 8; n++) {
+      ctx.strokeStyle = `rgba(30,55,22,${alpha * 0.8})`; ctx.lineWidth = 8 + Math.random() * 8;
+      const ny = H - n * (H / 7);
+      ctx.beginPath(); ctx.moveTo(bx - 5, ny); ctx.lineTo(bx + 5, ny); ctx.stroke();
+    }
+  }
+  // Winding stream / 曲水
+  ctx.save(); ctx.filter = 'blur(2px)';
+  ctx.strokeStyle = 'rgba(80,140,100,0.4)'; ctx.lineWidth = 18;
+  ctx.beginPath(); ctx.moveTo(W * 0.1, H * 0.9); ctx.bezierCurveTo(W * 0.3, H * 0.75, W * 0.5, H * 0.8, W * 0.6, H * 0.65); ctx.bezierCurveTo(W * 0.7, H * 0.55, W * 0.85, H * 0.6, W * 0.9, H * 0.5); ctx.stroke();
+  ctx.restore();
+  // Fallen flower petals
+  for (let i = 0; i < 25; i++) {
+    ctx.save(); ctx.translate(Math.random() * W, Math.random() * H); ctx.rotate(Math.random() * Math.PI);
+    ctx.fillStyle = `rgba(220,200,180,${Math.random() * 0.25 + 0.05})`;
+    ctx.beginPath(); ctx.ellipse(0, 0, 4 + Math.random() * 6, 2 + Math.random() * 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, H * 0.85);
+  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.7)');
+  ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+}
+
+// ── FLOATING INK PARTICLES on home ──
+function addParticles() {
+  const home = document.getElementById('home');
+  for (let i = 0; i < 6; i++) {
+    const p = document.createElement('div');
+    p.className = 'ink-particle';
+    const size = 4 + Math.random() * 12;
+    p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;bottom:${-size}px;animation-duration:${15+Math.random()*20}s;animation-delay:${Math.random()*10}s;`;
+    home.appendChild(p);
+  }
+}
+addParticles();
+
+// Initialize
+drawScene('fuchun');
+</script>
+</body>
+</html>
