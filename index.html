@@ -10,7 +10,7 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0806;font-family:'Noto Serif SC',serif}
 
 /* ─── CANVAS ─── */
-#glc{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#glc{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;filter:brightness(1.55) contrast(1.08) saturate(1.1);}
 #glc:active{cursor:grabbing}
 
 /* ─── LOADING ─── */
@@ -299,6 +299,8 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.8;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
