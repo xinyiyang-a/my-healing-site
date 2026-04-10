@@ -10,7 +10,7 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#0a0806;font-family:'Noto Serif SC',serif}
 
 /* ─── CANVAS ─── */
-#glc{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;filter:brightness(1.55) contrast(1.08) saturate(1.1);}
+#glc{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;}
 #glc:active{cursor:grabbing}
 
 /* ─── LOADING ─── */
@@ -273,22 +273,28 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0806;font-family:
 const SCENES = [
   { id:'fuchun',  name:'富春山居', tag:'山水水墨 · 视觉疗愈',
     desc:'远山淡墨、云雾缓流、江面平阔、轻舟无痕',
-    mood:'焦虑 · 烦躁 · 压力过载' },
+    mood:'焦虑 · 烦躁 · 压力过载',
+    filter:'brightness(1.9) contrast(1.05)' },
   { id:'yunshan', name:'云山禅境', tag:'极简禅意 · 静心安神',
     desc:'孤峰耸立、云海漫涌、古松挺立、留白深远',
-    mood:'精神内耗 · 失眠 · 注意力涣散' },
+    mood:'精神内耗 · 失眠 · 注意力涣散',
+    filter:'brightness(1.8) contrast(1.05)' },
   { id:'xishan',  name:'溪山行旅', tag:'自然疗愈 · 疲惫修复',
     desc:'浅溪、石桥、远山、雾霭、林间微光',
-    mood:'情绪低落 · 紧绷 · 疲惫' },
+    mood:'情绪低落 · 紧绷 · 疲惫',
+    filter:'brightness(1.8) contrast(1.05)' },
   { id:'tingyu',  name:'听雨轩窗', tag:'中式园林 · 思绪纾解',
     desc:'苏式园林、漏窗、荷塘、芭蕉、细雨轻落',
-    mood:'嘈杂环境 · 抑郁 · 思绪杂乱' },
+    mood:'嘈杂环境 · 抑郁 · 思绪杂乱',
+    filter:'brightness(2.8) contrast(1.0) saturate(1.3)' },
   { id:'bimo',    name:'笔墨静心', tag:'书房禅意 · 专注提升',
     desc:'明式书房、文房四宝、竹影窗纱、青烟袅袅',
-    mood:'浮躁 · 考前紧张 · 专注力差' },
+    mood:'浮躁 · 考前紧张 · 专注力差',
+    filter:'brightness(3.2) contrast(0.95) saturate(0.8) sepia(0.2)' },
   { id:'lanting', name:'兰亭曲水', tag:'竹林胜境 · 心情舒缓',
     desc:'茂林修竹、曲水流觞、落花逐水',
-    mood:'社交压力 · 心情压抑' },
+    mood:'社交压力 · 心情压抑',
+    filter:'brightness(1.9) contrast(1.05)' },
 ];
 
 /* ════════════════════════════
@@ -299,8 +305,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.8;
+renderer.toneMapping = THREE.NoToneMapping;
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -643,6 +648,8 @@ function enter(id){
     document.getElementById('hname').textContent=s.name;
     document.getElementById('hadp').textContent=s.mood;
     document.querySelectorAll('.sw-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
+    // Apply per-scene brightness filter
+    canvas.style.filter = s.filter || 'brightness(1.8)';
     ry=0; rx=0; vy=0; vx=0; autoRotSpeed=0.0004;
     loadSceneTex(id);
     document.getElementById('sel').classList.remove('on');
@@ -663,6 +670,7 @@ let bI=0;
   const bar=document.getElementById('lf'); let p=0;
   // Load first scene immediately
   loadSceneTex('fuchun');
+  canvas.style.filter = SCENES[0].filter || 'brightness(1.8)';
   const iv=setInterval(()=>{
     p+=12+Math.random()*18; bar.style.width=Math.min(p,95)+'%';
     if(p>=100){
