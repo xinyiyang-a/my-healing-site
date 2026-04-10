@@ -522,23 +522,24 @@ function loadSceneTex(id) {
     applyTex(texCache[id]);
     return;
   }
-  // Try real image first
-  loader.load(
-    id + '.jpg',
-    tex => {
-      tex.encoding = THREE.sRGBEncoding;
-      tex.wrapS = THREE.RepeatWrapping;
-      // Horizontal mirror flip for correct orientation inside sphere
-      tex.repeat.x = -1; tex.offset.x = 1;
-      texCache[id] = tex;
-      applyTex(tex);
-    },
-    undefined,
-    () => {
-      // Fallback: procedural canvas texture
-      buildProceduralTex(id);
-    }
-  );
+  // 用 fetch + blob 绕过 CORS，同时兼容本地文件
+  fetch(id + '.jpg')
+    .then(r => { if (!r.ok) throw new Error('not found'); return r.blob(); })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const tex = new THREE.Texture(img);
+        tex.encoding = THREE.sRGBEncoding;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.repeat.x = -1; tex.offset.x = 1;
+        tex.needsUpdate = true;
+        texCache[id] = tex;
+        applyTex(tex);
+      };
+      img.src = url;
+    })
+    .catch(() => buildProceduralTex(id));
 }
 
 function applyTex(tex) {
@@ -1233,20 +1234,24 @@ async function generateScene() {
 
     setStatus('<span class="gen-dot-ani"><span>●</span><span>●</span><span>●</span></span> 正在生成水墨画面…（约30秒）');
 
-    // Step 2: 调用 Pollinations.ai 免费生图
-    // 构建最终提示词
+    // Step 2: 构建 Pollinations.ai URL
     const finalPrompt = encodeURIComponent(
-      engPrompt + ', wide panoramic view, 2:1 aspect ratio, no text, no people, healing atmosphere'
+      engPrompt + ', wide panoramic landscape, no text, no people, healing atmosphere, high quality'
     );
-    const negPrompt = encodeURIComponent('colorful, bright colors, western style, realistic photo, people, text, watermark');
-    const imgUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=2048&height=1024&negative=${negPrompt}&model=flux&seed=${Date.now()}&nologo=true`;
+    // 用 corsproxy.io 绕过 CORS 限制
+    const rawUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=2048&height=1024&model=flux&seed=${Date.now()}&nologo=true&enhance=true`;
+    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(rawUrl)}`;
 
-    // 预加载图片
+    // 用 fetch 下载图片 blob，避免 CORS 问题
+    const imgResp = await fetch(proxyUrl);
+    if (!imgResp.ok) throw new Error('图片生成失败，请重试');
+    const blob = await imgResp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    // 加载为 Image 并贴到球面
     await new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
       img.onload = () => {
-        // 贴到球面
         const tex = new THREE.Texture(img);
         tex.needsUpdate = true;
         tex.wrapS = THREE.RepeatWrapping;
@@ -1256,7 +1261,7 @@ async function generateScene() {
         resolve();
       };
       img.onerror = () => reject(new Error('图片加载失败，请重试'));
-      img.src = imgUrl;
+      img.src = blobUrl;
     });
 
     // Step 3: 进入自定义场景
