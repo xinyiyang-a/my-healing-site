@@ -207,8 +207,108 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0806;font-family:
 }
 #toast.show{opacity:1}
 
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+/* ─── CUSTOM SCENE GENERATOR ─── */
+#gen{
+  position:fixed;inset:0;z-index:150;
+  background:rgba(8,6,4,.96);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .7s ease;
+  padding:2rem 1rem;
+}
+#gen.on{opacity:1;pointer-events:all}
+.gen-title{
+  font-family:'ZCOOL XiaoWei',serif;
+  font-size:clamp(1.4rem,3vw,2.2rem);
+  color:#f0e8d8;letter-spacing:.2em;text-align:center;margin-bottom:.6rem;
+}
+.gen-sub{
+  font-size:.62rem;letter-spacing:.4em;color:rgba(196,149,90,.5);
+  text-align:center;margin-bottom:2rem;
+}
+.gen-box{
+  width:min(580px,92vw);
+  background:rgba(20,14,6,.8);
+  border:.5px solid rgba(196,149,90,.18);
+  padding:2rem;
+  display:flex;flex-direction:column;gap:1.2rem;
+}
+.gen-label{
+  font-size:.62rem;letter-spacing:.38em;color:rgba(196,149,90,.55);
+  margin-bottom:.5rem;
+}
+.gen-examples{
+  display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem;
+}
+.gen-eg{
+  padding:.28rem .7rem;font-size:.6rem;letter-spacing:.15em;
+  border:.5px solid rgba(196,149,90,.2);color:rgba(235,220,195,.4);
+  cursor:pointer;border-radius:1px;transition:all .2s;background:transparent;
+  font-family:inherit;
+}
+.gen-eg:hover{border-color:rgba(196,149,90,.5);color:rgba(235,220,195,.75);background:rgba(196,149,90,.08);}
+textarea#ginput{
+  width:100%;height:90px;padding:.9rem 1rem;
+  background:rgba(10,7,3,.6);border:.5px solid rgba(196,149,90,.2);
+  color:#f0e8d8;font-family:'Noto Serif SC',serif;font-size:.85rem;
+  line-height:1.7;letter-spacing:.05em;resize:none;outline:none;
+  transition:border-color .2s;
+}
+textarea#ginput:focus{border-color:rgba(196,149,90,.5);}
+textarea#ginput::placeholder{color:rgba(235,220,195,.22);font-size:.78rem;}
+.gen-btns{display:flex;gap:.8rem;align-items:center;}
+.gen-btn{
+  flex:1;padding:.75rem;
+  font-family:'ZCOOL XiaoWei',serif;font-size:.9rem;letter-spacing:.25em;
+  cursor:pointer;border:none;transition:all .25s;
+  background:rgba(196,149,90,.18);color:rgba(235,220,195,.85);
+  border:.5px solid rgba(196,149,90,.35);
+}
+.gen-btn:hover{background:rgba(196,149,90,.3);color:#f0e8d8;}
+.gen-btn:disabled{opacity:.38;cursor:not-allowed;}
+.gen-btn.cancel{
+  flex:0 0 auto;padding:.75rem 1.2rem;
+  background:transparent;border-color:rgba(235,220,195,.15);
+  color:rgba(235,220,195,.35);font-family:'Noto Serif SC',serif;font-size:.7rem;
+}
+.gen-btn.cancel:hover{border-color:rgba(235,220,195,.35);color:rgba(235,220,195,.6);}
+.gen-status{
+  font-size:.65rem;letter-spacing:.3em;color:rgba(196,149,90,.55);
+  text-align:center;min-height:1.2rem;
+  display:flex;align-items:center;justify-content:center;gap:.6rem;
+}
+.gen-dot-ani span{
+  display:inline-block;animation:dotAni 1.4s ease-in-out infinite;
+  color:rgba(196,149,90,.7);
+}
+.gen-dot-ani span:nth-child(2){animation-delay:.2s}
+.gen-dot-ani span:nth-child(3){animation-delay:.4s}
+@keyframes dotAni{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
 
+/* 自定义场景按钮（在选择页） */
+.gen-entry{
+  margin-top:1.5rem;
+  padding:1.2rem 1.6rem;
+  background:rgba(196,149,90,.06);
+  border:.5px solid rgba(196,149,90,.2);
+  cursor:pointer;transition:all .3s;
+  display:flex;align-items:center;gap:1.2rem;
+  width:min(860px,94vw);
+}
+.gen-entry:hover{background:rgba(196,149,90,.12);border-color:rgba(196,149,90,.4);}
+.gen-entry-icon{
+  font-family:'Ma Shan Zheng',cursive;font-size:1.8rem;
+  color:rgba(196,149,90,.6);flex-shrink:0;
+}
+.gen-entry-text .t1{
+  font-family:'ZCOOL XiaoWei',serif;font-size:1rem;
+  color:rgba(235,220,195,.75);letter-spacing:.18em;
+}
+.gen-entry-text .t2{
+  font-size:.6rem;color:rgba(196,149,90,.45);
+  letter-spacing:.3em;margin-top:.3rem;
+}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 /* ─── PLACEHOLDER CANVAS ─── */
 #offC{display:none}
 </style>
@@ -227,11 +327,46 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0806;font-family:
 <canvas id="glc"></canvas>
 <canvas id="offC" width="2048" height="1024"></canvas>
 
+<!-- CUSTOM SCENE GENERATOR -->
+<div id="gen">
+  <p class="gen-title">创造你的水墨世界</p>
+  <p class="gen-sub">用文字描绘心中的疗愈画面 · AI 为你生成专属场景</p>
+  <div class="gen-box">
+    <div>
+      <div class="gen-label">选择灵感</div>
+      <div class="gen-examples">
+        <button class="gen-eg" onclick="fillEg(this)">月色下的竹林小径</button>
+        <button class="gen-eg" onclick="fillEg(this)">江南烟雨中的古桥</button>
+        <button class="gen-eg" onclick="fillEg(this)">云雾缭绕的山间禅寺</button>
+        <button class="gen-eg" onclick="fillEg(this)">荷花池边的亭台楼阁</button>
+        <button class="gen-eg" onclick="fillEg(this)">松间明月照清泉</button>
+        <button class="gen-eg" onclick="fillEg(this)">秋日芦苇荡漫天红霞</button>
+      </div>
+    </div>
+    <div>
+      <div class="gen-label">或者自由描述</div>
+      <textarea id="ginput" placeholder="描述你想要的疗愈场景，比如：一片宁静的梅花林，雪后初晴，远处有隐隐青山…"></textarea>
+    </div>
+    <div class="gen-status" id="gstatus"></div>
+    <div class="gen-btns">
+      <button class="gen-btn cancel" onclick="closeGen()">取 消</button>
+      <button class="gen-btn" id="gbtn" onclick="generateScene()">✦ 生 成 我 的 场 景</button>
+    </div>
+  </div>
+</div>
+
 <!-- SCENE SELECT -->
 <div id="sel">
   <p class="s-title">进入疗愈场景吧</p>
   <p class="s-sub">六境 · 360° 沉浸 · 归于当下</p>
   <div class="s-grid" id="sgrid"></div>
+  <div class="gen-entry" onclick="openGen()">
+    <div class="gen-entry-icon">✦</div>
+    <div class="gen-entry-text">
+      <div class="t1">创造我的专属场景</div>
+      <div class="t2">输入描述 · AI 生成水墨全景 · 沉浸其中</div>
+    </div>
+  </div>
 </div>
 
 <!-- HUD -->
@@ -1041,7 +1176,112 @@ function enter(id){
   },480);
 }
 
-// Breath cycle
+/* ════════════════════════════
+   CUSTOM SCENE GENERATOR
+════════════════════════════ */
+function openGen() {
+  document.getElementById('sel').classList.remove('on');
+  document.getElementById('gen').classList.add('on');
+  document.getElementById('gstatus').innerHTML = '';
+  document.getElementById('gbtn').disabled = false;
+}
+function closeGen() {
+  document.getElementById('gen').classList.remove('on');
+  document.getElementById('sel').classList.add('on');
+}
+function fillEg(btn) {
+  document.getElementById('ginput').value = btn.textContent;
+}
+
+function setStatus(html) {
+  document.getElementById('gstatus').innerHTML = html;
+}
+
+async function generateScene() {
+  const input = document.getElementById('ginput').value.trim();
+  if (!input) { setStatus('请先输入场景描述～'); return; }
+
+  const btn = document.getElementById('gbtn');
+  btn.disabled = true;
+  setStatus('<span class="gen-dot-ani"><span>●</span><span>●</span><span>●</span></span> 正在构思画面…');
+
+  try {
+    // Step 1: 用 Claude API 把中文描述转成水墨风格英文提示词
+    const promptRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        messages: [{
+          role: 'user',
+          content: `把下面的中文场景描述转成一段适合AI绘图的英文提示词。
+要求：
+1. 风格必须是中国传统水墨画（Chinese ink wash painting / shanshui）
+2. 加入这些关键词：equirectangular panorama, Chinese ink wash painting, misty atmosphere, zen, monochromatic, soft brushstrokes
+3. 描述要具体生动，60词以内
+4. 只输出英文提示词，不要其他内容
+
+场景描述：${input}`
+        }]
+      })
+    });
+
+    const promptData = await promptRes.json();
+    const engPrompt = promptData.content?.[0]?.text?.trim();
+    if (!engPrompt) throw new Error('提示词生成失败');
+
+    setStatus('<span class="gen-dot-ani"><span>●</span><span>●</span><span>●</span></span> 正在生成水墨画面…（约30秒）');
+
+    // Step 2: 调用 Pollinations.ai 免费生图
+    // 构建最终提示词
+    const finalPrompt = encodeURIComponent(
+      engPrompt + ', wide panoramic view, 2:1 aspect ratio, no text, no people, healing atmosphere'
+    );
+    const negPrompt = encodeURIComponent('colorful, bright colors, western style, realistic photo, people, text, watermark');
+    const imgUrl = `https://image.pollinations.ai/prompt/${finalPrompt}?width=2048&height=1024&negative=${negPrompt}&model=flux&seed=${Date.now()}&nologo=true`;
+
+    // 预加载图片
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        // 贴到球面
+        const tex = new THREE.Texture(img);
+        tex.needsUpdate = true;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.repeat.x = -1; tex.offset.x = 1;
+        applyTex(tex);
+        canvas.style.filter = 'brightness(1.85) contrast(1.05)';
+        resolve();
+      };
+      img.onerror = () => reject(new Error('图片加载失败，请重试'));
+      img.src = imgUrl;
+    });
+
+    // Step 3: 进入自定义场景
+    document.getElementById('hname').textContent = '✦ ' + input.slice(0, 10) + (input.length > 10 ? '…' : '');
+    document.getElementById('hadp').textContent = '专属疗愈场景';
+    document.querySelectorAll('.sw-btn').forEach(b => b.classList.remove('on'));
+    ry = 0; rx = 0; vy = 0; vx = 0; autoRotSpeed = 0.0004;
+    curSceneId = 'custom';
+    updateAudioLabels('fuchun'); // 用富春山居的音效
+    switchSceneAudio('fuchun');
+
+    document.getElementById('gen').classList.remove('on');
+    document.getElementById('hud').classList.add('on');
+
+  } catch (err) {
+    setStatus('⚠ ' + (err.message || '生成失败，请重试'));
+    btn.disabled = false;
+    return;
+  }
+
+  btn.disabled = false;
+  setStatus('');
+}
+
+
 const bStates=['缓缓吸气','屏息片刻','缓缓呼气','自然呼吸'], bDurs=[3500,1500,4500,1200];
 let bI=0;
 (function breath(){ document.getElementById('bst').textContent=bStates[bI]; bI=(bI+1)%4; setTimeout(breath,bDurs[bI]); })();
