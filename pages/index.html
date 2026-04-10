@@ -133,32 +133,35 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0a0806;font-family:
 .b-r1{animation:br1 14s ease-in-out infinite;transform-origin:center}
 .b-r2{animation:br2 14s ease-in-out infinite;transform-origin:center}
 .b-r3{animation:br3 14s ease-in-out infinite;transform-origin:center}
-/* 14s周期 = 3.5s吸气(25%) + 1.5s屏息(35%) + 4.5s呼气(67%) + 4.5s自然 */
 @keyframes br1{
-  0%,100%{transform:scale(.9);opacity:.10}
-  25%{transform:scale(1.18);opacity:.22}
-  36%{transform:scale(1.18);opacity:.20}
-  67%{transform:scale(.9);opacity:.10}
+  0%,100%{transform:scale(.9);opacity:.35}
+  25%{transform:scale(1.18);opacity:.6}
+  36%{transform:scale(1.18);opacity:.55}
+  67%{transform:scale(.9);opacity:.35}
 }
 @keyframes br2{
-  0%,100%{transform:scale(.82);opacity:.16}
-  25%{transform:scale(1.28);opacity:.42}
-  36%{transform:scale(1.28);opacity:.38}
-  67%{transform:scale(.82);opacity:.16}
+  0%,100%{transform:scale(.82);opacity:.5}
+  25%{transform:scale(1.28);opacity:.85}
+  36%{transform:scale(1.28);opacity:.8}
+  67%{transform:scale(.82);opacity:.5}
 }
 @keyframes br3{
-  0%,100%{transform:scale(.72);opacity:.20;fill:rgba(235,220,195,.04)}
-  25%{transform:scale(1.38);opacity:.60;fill:rgba(235,220,195,.12)}
-  36%{transform:scale(1.38);opacity:.54;fill:rgba(235,220,195,.10)}
-  67%{transform:scale(.72);opacity:.20;fill:rgba(235,220,195,.04)}
+  0%,100%{transform:scale(.72);opacity:.6;fill:rgba(240,228,200,.06)}
+  25%{transform:scale(1.38);opacity:1;fill:rgba(240,228,200,.18)}
+  36%{transform:scale(1.38);opacity:.95;fill:rgba(240,228,200,.15)}
+  67%{transform:scale(.72);opacity:.6;fill:rgba(240,228,200,.06)}
 }
 .b-label{
-  font-family:'Ma Shan Zheng',cursive;font-size:.8rem;
-  color:rgba(235,220,195,.38);letter-spacing:.5em;
+  font-family:'Ma Shan Zheng',cursive;font-size:.85rem;
+  color:rgba(240,228,200,.75);letter-spacing:.5em;
+  text-shadow:0 1px 8px rgba(0,0,0,.6);
 }
 .b-state{
-  font-size:.58rem;letter-spacing:.5em;color:rgba(196,149,90,.62);
-  min-width:6em;text-align:center;transition:opacity .5s ease;
+  font-size:.62rem;letter-spacing:.5em;
+  color:rgba(210,180,120,.9);
+  min-width:6em;text-align:center;
+  text-shadow:0 1px 8px rgba(0,0,0,.7);
+  transition:opacity .5s ease;
 }
 @keyframes bFade{0%,100%{opacity:.16}50%{opacity:.45}}
 
@@ -373,9 +376,9 @@ textarea#ginput::placeholder{color:rgba(235,220,195,.22);font-size:.78rem;}
 
   <div class="h-breath">
     <svg class="b-svg" width="160" height="160" viewBox="-80 -80 160 160">
-      <circle class="b-r1" r="68" fill="none" stroke="rgba(235,220,195,.12)" stroke-width="1"/>
-      <circle class="b-r2" r="52" fill="none" stroke="rgba(235,220,195,.22)" stroke-width="1"/>
-      <circle class="b-r3" r="34" fill="rgba(235,220,195,.04)" stroke="rgba(235,220,195,.45)" stroke-width="1.2"/>
+      <circle class="b-r1" r="68" fill="none" stroke="rgba(240,228,200,.45)" stroke-width="1.5"/>
+      <circle class="b-r2" r="52" fill="none" stroke="rgba(240,228,200,.65)" stroke-width="1.8"/>
+      <circle class="b-r3" r="34" fill="rgba(240,228,200,.06)" stroke="rgba(240,228,200,.9)" stroke-width="2.2"/>
     </svg>
     <div class="b-label">呼 · 吸</div>
     <div class="b-state" id="bst">缓缓吸气</div>
