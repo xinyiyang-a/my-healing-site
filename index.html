@@ -699,6 +699,19 @@ let noiseNodes = [], musicNodes = [], noiseGain = null, musicGain = null;
 let musicTimer = null;
 const aS = { n: false, m: false };
 let curSceneId = 'fuchun';
+// 这个函数必须存在，用于把 mp3 转换成浏览器能理解的 Buffer
+async function fetchAudioBuffer(ac, url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await ac.decodeAudioData(arrayBuffer);
+    return audioBuffer;
+  } catch (e) {
+    console.error("音频解码失败:", url, e);
+    throw e;
+  }
+}
 
 // 各场景音效配置
 const AUDIO_CFG = {
@@ -1050,51 +1063,34 @@ function startNoise(id) {
   g.gain.linearRampToValueAtTime(0.55, aC.currentTime + 0.8);
 }
 
-async function startMusic(id) {
-  // 1. 基础状态检查
+async function startMusic(id) { // 必须加 async
   if (!aC || !aS.m) return;
   const cfg = AUDIO_CFG[id];
   if (!cfg) return;
+  
+  clearTimeout(musicTimer); // 启动前清除之前的定时器
 
-  // 2. 每次启动前，先清除旧的定时器，防止多个定时器并行导致音乐重叠
-  clearTimeout(musicTimer);
-
-  // 3. 创建当前音轨的 GainNode
-  const g = aC.createGain();
+  const g = aC.createGain(); 
   g.gain.value = 0;
-  // 接入全局混响（如果存在）
   if (aC._reverb) g.connect(aC._reverb);
   g.connect(masterGain);
   musicGain = g;
 
-  // 4. 【关键改动】等待音频文件加载并开始播放
-  // 因为 cfg.music 是 async，这里必须加 await
+  // 重要：这里必须加 await，无论 cfg.music 是否是 async 函数，await 都是安全的
   const nodes = await cfg.music(aC, g, 1.0);
-
-  // 5. 【防御性检查】
-  // 因为 await 加载文件需要时间，加载完后可能用户已经切换了场景或关闭了音乐
+  
+  // 防御检查：防止加载音频期间用户切换了场景
   if (curSceneId !== id || !aS.m) {
-    // 如果场景已经变了，立即停止并释放刚刚加载好的节点
-    nodes.forEach(n => {
-      try { 
-        n.stop ? n.stop() : n.disconnect(); 
-      } catch(e) { /* 忽略已停止的节点错误 */ }
-    });
+    nodes.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} });
     return;
   }
 
-  // 6. 记录节点，以便在 switchSceneAudio 中被 stopMusic() 正确销毁
   musicNodes = nodes;
-
-  // 7. 实现平滑淡入（1秒时间从0增益到0.72）
   g.gain.linearRampToValueAtTime(0.72, aC.currentTime + 1.0);
-
-  // 8. 循环逻辑
-  // 等音乐真正开始播放后，再设置下一个循环的定时器
-  musicTimer = setTimeout(() => {
-    if (aS.m && curSceneId === id) {
-      startMusic(id);
-    }
+  
+  // 递归循环
+  musicTimer = setTimeout(() => { 
+    if (aS.m && curSceneId === id) startMusic(id); 
   }, cfg.musicDur);
 }
 
