@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>疗愈空间 · 360°</title>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0806;font-family:'Noto Serif SC',serif}
+
+/* ─── CANVAS ─── */
+#glc{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;}
+#glc:active{cursor:grabbing}
+
+/* ─── LOADING ─── */
+#load{
+  position:fixed;inset:0;z-index:300;
+  background:#0a0806;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2rem;
+  transition:opacity 1.4s ease;
+}
+#load.out{opacity:0;pointer-events:none}
+.l-seal{
+  width:72px;height:72px;border:1.5px solid #7a1a1a;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Ma Shan Zheng',cursive;font-size:1.05rem;color:#9a2a2a;
+  line-height:1.5;text-align:center;
+  animation:sealPulse 2.4s ease-in-out infinite;
+}
+@keyframes sealPulse{0%,100%{opacity:.4;transform:scale(.94)}50%{opacity:1;transform:scale(1)}}
+.l-bar{width:150px;height:1px;background:rgba(180,130,70,.15);position:relative;overflow:hidden}
+.l-fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#a07040,#c4955a);width:0%;transition:width .3s ease}
+.l-txt{font-size:.65rem;letter-spacing:.65em;color:rgba(235,220,195,.28);animation:ltFade 2s ease-in-out infinite}
+@keyframes ltFade{0%,100%{opacity:.2}50%{opacity:.6}}
+
+/* ─── SCENE SELECT ─── */
+#sel{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(8,6,4,.96);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .8s ease;
+  padding:1.5rem 1rem;
+}
+#sel.on{opacity:1;pointer-events:all}
+.s-title{
+  font-family:'ZCOOL XiaoWei',serif;
+  font-size:clamp(1.8rem,4vw,3.2rem);
+  color:#f0e8d8;letter-spacing:.22em;text-align:center;
+  text-shadow:0 0 40px rgba(196,149,90,.2);
+  animation:fadeUp .9s ease both;
+}
+.s-sub{
+  font-size:.62rem;letter-spacing:.55em;color:rgba(196,149,90,.55);
+  margin:.7rem 0 2.5rem;animation:fadeUp .9s .12s ease both;text-align:center;
+}
+.s-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;width:min(880px,96vw);
+  border:.5px solid rgba(196,149,90,.1);
+  animation:fadeUp .9s .2s ease both;
+}
+.s-card{
+  position:relative;cursor:pointer;
+  padding:1.6rem 1.4rem 1.4rem;
+  background:rgba(18,12,5,.82);
+  border:.5px solid rgba(196,149,90,.06);
+  transition:background .3s,border-color .3s;
+  overflow:hidden;
+}
+.s-card::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(196,149,90,.07) 0%,transparent 55%);
+  opacity:0;transition:opacity .3s;
+}
+.s-card:hover{background:rgba(36,24,10,.92);border-color:rgba(196,149,90,.22)}
+.s-card:hover::before{opacity:1}
+.s-card:hover .s-go{color:rgba(235,220,195,.7);transform:translateX(4px)}
+.s-num{
+  font-family:'Ma Shan Zheng',cursive;font-size:2.4rem;
+  color:rgba(196,149,90,.07);position:absolute;top:.5rem;right:.9rem;
+  line-height:1;transition:opacity .3s;
+}
+.s-card:hover .s-num{color:rgba(196,149,90,.42)}
+.s-tag{font-size:.56rem;letter-spacing:.38em;color:rgba(196,149,90,.52);margin-bottom:.65rem}
+.s-name{
+  font-family:'ZCOOL XiaoWei',serif;font-size:1.18rem;
+  color:#f0e8d8;letter-spacing:.16em;margin-bottom:.38rem;
+}
+.s-desc{font-size:.63rem;color:rgba(235,220,195,.34);letter-spacing:.08em;line-height:1.7}
+.s-mood{
+  margin-top:.8rem;padding-top:.7rem;
+  border-top:.5px solid rgba(196,149,90,.1);
+  font-size:.57rem;color:rgba(196,149,90,.4);letter-spacing:.18em;
+}
+.s-go{
+  position:absolute;bottom:1rem;right:1.1rem;
+  font-size:.6rem;color:rgba(235,220,195,.15);
+  letter-spacing:.3em;transition:all .3s;
+}
+
+/* ─── HUD ─── */
+#hud{position:fixed;inset:0;z-index:100;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
+#hud.on{opacity:1}
+
+/* top */
+.h-top{
+  position:absolute;top:0;left:0;right:0;padding:1.5rem 2.2rem;
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(180deg,rgba(0,0,0,.62) 0%,transparent 100%);
+  pointer-events:all;
+}
+.h-back{
+  display:flex;align-items:center;gap:.55rem;
+  font-size:.68rem;letter-spacing:.32em;color:rgba(235,220,195,.52);
+  cursor:pointer;background:none;border:none;font-family:inherit;
+  transition:color .2s;
+}
+.h-back:hover{color:rgba(235,220,195,.92)}
+.h-name{
+  font-family:'ZCOOL XiaoWei',serif;font-size:1rem;
+  color:rgba(235,220,195,.65);letter-spacing:.32em;
+}
+.h-hint{font-size:.58rem;letter-spacing:.3em;color:rgba(235,220,195,.22)}
+
+/* breath */
+.h-breath{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:16px;
+  pointer-events:none;
+}
+.b-svg{overflow:visible}
+.b-r1{animation:br1 14s ease-in-out infinite;transform-origin:center}
+.b-r2{animation:br2 14s ease-in-out infinite;transform-origin:center}
+.b-r3{animation:br3 14s ease-in-out infinite;transform-origin:center}
+/* 14s周期 = 3.5s吸气(25%) + 1.5s屏息(35%) + 4.5s呼气(67%) + 4.5s自然 */
+@keyframes br1{
+  0%,100%{transform:scale(.9);opacity:.10}
+  25%{transform:scale(1.18);opacity:.22}
+  36%{transform:scale(1.18);opacity:.20}
+  67%{transform:scale(.9);opacity:.10}
+}
+@keyframes br2{
+  0%,100%{transform:scale(.82);opacity:.16}
+  25%{transform:scale(1.28);opacity:.42}
+  36%{transform:scale(1.28);opacity:.38}
+  67%{transform:scale(.82);opacity:.16}
+}
+@keyframes br3{
+  0%,100%{transform:scale(.72);opacity:.20;fill:rgba(235,220,195,.04)}
+  25%{transform:scale(1.38);opacity:.60;fill:rgba(235,220,195,.12)}
+  36%{transform:scale(1.38);opacity:.54;fill:rgba(235,220,195,.10)}
+  67%{transform:scale(.72);opacity:.20;fill:rgba(235,220,195,.04)}
+}
+.b-label{
+  font-family:'Ma Shan Zheng',cursive;font-size:.8rem;
+  color:rgba(235,220,195,.38);letter-spacing:.5em;
+}
+.b-state{
+  font-size:.58rem;letter-spacing:.5em;color:rgba(196,149,90,.62);
+  min-width:6em;text-align:center;transition:opacity .5s ease;
+}
+@keyframes bFade{0%,100%{opacity:.16}50%{opacity:.45}}
+
+/* bottom */
+.h-bot{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:1.6rem 2.2rem 2.2rem;
+  background:linear-gradient(0deg,rgba(0,0,0,.65) 0%,transparent 100%);
+  pointer-events:all;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:1rem;flex-wrap:wrap;
+}
+.h-audio{display:flex;gap:.7rem;align-items:center}
+.a-btn{
+  display:flex;align-items:center;gap:.45rem;
+  padding:.4rem .92rem;cursor:pointer;
+  border:.5px solid rgba(235,220,195,.15);
+  background:rgba(235,220,195,.04);
+  color:rgba(235,220,195,.38);
+  font-family:inherit;font-size:.63rem;letter-spacing:.2em;
+  transition:all .22s;border-radius:1px;
+}
+.a-btn:hover{background:rgba(235,220,195,.09);color:rgba(235,220,195,.72)}
+.a-btn.on{
+  border-color:rgba(196,149,90,.52);
+  background:rgba(196,149,90,.14);
+  color:rgba(235,220,195,.9);
+}
+.a-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.a-btn.on .a-dot{animation:dotP 1.8s ease-in-out infinite}
+@keyframes dotP{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* scene switcher */
+.h-sw{display:flex;gap:.45rem;flex-wrap:wrap;justify-content:center}
+.sw-btn{
+  padding:.28rem .7rem;font-family:inherit;font-size:.6rem;
+  letter-spacing:.18em;border:.5px solid rgba(235,220,195,.13);
+  background:transparent;color:rgba(235,220,195,.3);
+  cursor:pointer;transition:all .2s;border-radius:1px;
+}
+.sw-btn:hover{border-color:rgba(235,220,195,.38);color:rgba(235,220,195,.65)}
+.sw-btn.on{
+  border-color:rgba(196,149,90,.55);
+  color:rgba(235,220,195,.92);
+  background:rgba(196,149,90,.14);
+}
+.h-info{text-align:right}
+.h-il{font-size:.54rem;letter-spacing:.4em;color:rgba(235,220,195,.2)}
+.h-iv{font-size:.68rem;color:rgba(196,149,90,.68);letter-spacing:.14em;margin-top:2px}
+
+/* ─── OVERLAY + TOAST ─── */
+#ov{position:fixed;inset:0;z-index:250;background:#0a0806;opacity:0;pointer-events:none;transition:opacity .5s ease}
+#ov.on{opacity:1;pointer-events:all}
+#toast{
+  position:fixed;bottom:6rem;left:50%;transform:translateX(-50%);
+  z-index:400;padding:.52rem 1.3rem;
+  background:rgba(24,16,6,.9);border:.5px solid rgba(196,149,90,.35);
+  color:rgba(235,220,195,.75);font-size:.68rem;letter-spacing:.2em;
+  border-radius:2px;opacity:0;transition:opacity .4s;
+  pointer-events:none;white-space:nowrap;
+}
+#toast.show{opacity:1}
+
+/* ─── CUSTOM SCENE GENERATOR ─── */
+#gen{
+  position:fixed;inset:0;z-index:150;
+  background:rgba(8,6,4,.96);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .7s ease;
+  padding:2rem 1rem;
+}
+#gen.on{opacity:1;pointer-events:all}
+.gen-title{
+  font-family:'ZCOOL XiaoWei',serif;
+  font-size:clamp(1.4rem,3vw,2.2rem);
+  color:#f0e8d8;letter-spacing:.2em;text-align:center;margin-bottom:.6rem;
+}
+.gen-sub{
+  font-size:.62rem;letter-spacing:.4em;color:rgba(196,149,90,.5);
+  text-align:center;margin-bottom:2rem;
+}
+.gen-box{
+  width:min(580px,92vw);
+  background:rgba(20,14,6,.8);
+  border:.5px solid rgba(196,149,90,.18);
+  padding:2rem;
+  display:flex;flex-direction:column;gap:1.2rem;
+}
+.gen-label{
+  font-size:.62rem;letter-spacing:.38em;color:rgba(196,149,90,.55);
+  margin-bottom:.5rem;
+}
+.gen-examples{
+  display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.4rem;
+}
+.gen-eg{
+  padding:.28rem .7rem;font-size:.6rem;letter-spacing:.15em;
+  border:.5px solid rgba(196,149,90,.2);color:rgba(235,220,195,.4);
+  cursor:pointer;border-radius:1px;transition:all .2s;background:transparent;
+  font-family:inherit;
+}
+.gen-eg:hover{border-color:rgba(196,149,90,.5);color:rgba(235,220,195,.75);background:rgba(196,149,90,.08);}
+textarea#ginput{
+  width:100%;height:90px;padding:.9rem 1rem;
+  background:rgba(10,7,3,.6);border:.5px solid rgba(196,149,90,.2);
+  color:#f0e8d8;font-family:'Noto Serif SC',serif;font-size:.85rem;
+  line-height:1.7;letter-spacing:.05em;resize:none;outline:none;
+  transition:border-color .2s;
+}
+textarea#ginput:focus{border-color:rgba(196,149,90,.5);}
+textarea#ginput::placeholder{color:rgba(235,220,195,.22);font-size:.78rem;}
+.gen-btns{display:flex;gap:.8rem;align-items:center;}
+.gen-btn{
+  flex:1;padding:.75rem;
+  font-family:'ZCOOL XiaoWei',serif;font-size:.9rem;letter-spacing:.25em;
+  cursor:pointer;border:none;transition:all .25s;
+  background:rgba(196,149,90,.18);color:rgba(235,220,195,.85);
+  border:.5px solid rgba(196,149,90,.35);
+}
+.gen-btn:hover{background:rgba(196,149,90,.3);color:#f0e8d8;}
+.gen-btn:disabled{opacity:.38;cursor:not-allowed;}
+.gen-btn.cancel{
+  flex:0 0 auto;padding:.75rem 1.2rem;
+  background:transparent;border-color:rgba(235,220,195,.15);
+  color:rgba(235,220,195,.35);font-family:'Noto Serif SC',serif;font-size:.7rem;
+}
+.gen-btn.cancel:hover{border-color:rgba(235,220,195,.35);color:rgba(235,220,195,.6);}
+.gen-status{
+  font-size:.65rem;letter-spacing:.3em;color:rgba(196,149,90,.55);
+  text-align:center;min-height:1.2rem;
+  display:flex;align-items:center;justify-content:center;gap:.6rem;
+}
+.gen-dot-ani span{
+  display:inline-block;animation:dotAni 1.4s ease-in-out infinite;
+  color:rgba(196,149,90,.7);
+}
+.gen-dot-ani span:nth-child(2){animation-delay:.2s}
+.gen-dot-ani span:nth-child(3){animation-delay:.4s}
+@keyframes dotAni{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* 自定义场景按钮（在选择页） */
+.gen-entry{
+  margin-top:1.5rem;
+  padding:1.2rem 1.6rem;
+  background:rgba(196,149,90,.06);
+  border:.5px solid rgba(196,149,90,.2);
+  cursor:pointer;transition:all .3s;
+  display:flex;align-items:center;gap:1.2rem;
+  width:min(860px,94vw);
+}
+.gen-entry:hover{background:rgba(196,149,90,.12);border-color:rgba(196,149,90,.4);}
+.gen-entry-icon{
+  font-family:'Ma Shan Zheng',cursive;font-size:1.8rem;
+  color:rgba(196,149,90,.6);flex-shrink:0;
+}
+.gen-entry-text .t1{
+  font-family:'ZCOOL XiaoWei',serif;font-size:1rem;
+  color:rgba(235,220,195,.75);letter-spacing:.18em;
+}
+.gen-entry-text .t2{
+  font-size:.6rem;color:rgba(196,149,90,.45);
+  letter-spacing:.3em;margin-top:.3rem;
+}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+/* ─── PLACEHOLDER CANVAS ─── */
+#offC{display:none}
+</style>
+</head>
+<body>
+
+<div id="load">
+  <div class="l-seal">静<br>心</div>
+  <div class="l-bar"><div class="l-fill" id="lf"></div></div>
+  <div class="l-txt">正在展开山河</div>
+</div>
+
+<div id="ov"></div>
+<div id="toast"></div>
+
+<canvas id="glc"></canvas>
+<canvas id="offC" width="2048" height="1024"></canvas>
+
+<!-- CUSTOM SCENE GENERATOR -->
+<div id="gen">
+  <p class="gen-title">创造你的水墨世界</p>
+  <p class="gen-sub">用文字描绘心中的疗愈画面 · AI 为你生成专属场景</p>
+  <div class="gen-box" id="gen-inner"></div>
+</div>
+
+<!-- SCENE SELECT -->
+<div id="sel">
+  <p class="s-title">进入疗愈场景吧</p>
+  <p class="s-sub">六境 · 360° 沉浸 · 归于当下</p>
+  <div class="s-grid" id="sgrid"></div>
+  <div class="gen-entry" onclick="openGen()">
+    <div class="gen-entry-icon">✦</div>
+    <div class="gen-entry-text">
+      <div class="t1">创造我的专属场景</div>
+      <div class="t2">输入描述 · AI 生成水墨全景 · 沉浸其中</div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="h-top">
+    <button class="h-back" onclick="goSel()">← 返 回</button>
+    <div class="h-name" id="hname">富春山居</div>
+    <div class="h-hint">拖 拽 · 环 视 四 方</div>
+  </div>
+
+  <div class="h-breath">
+    <svg class="b-svg" width="160" height="160" viewBox="-80 -80 160 160">
+      <circle class="b-r1" r="68" fill="none" stroke="rgba(235,220,195,.12)" stroke-width="1"/>
+      <circle class="b-r2" r="52" fill="none" stroke="rgba(235,220,195,.22)" stroke-width="1"/>
+      <circle class="b-r3" r="34" fill="rgba(235,220,195,.04)" stroke="rgba(235,220,195,.45)" stroke-width="1.2"/>
+    </svg>
+    <div class="b-label">呼 · 吸</div>
+    <div class="b-state" id="bst">缓缓吸气</div>
+  </div>
+
+  <div class="h-bot">
+    <div class="h-audio">
+      <div class="a-btn" id="an" onclick="togAudio('n')"><div class="a-dot"></div>自然白噪音</div>
+      <div class="a-btn" id="am" onclick="togAudio('m')"><div class="a-dot"></div>传统疗愈音乐</div>
+    </div>
+    <div class="h-sw" id="hsw"></div>
+    <div class="h-info">
+      <div class="h-il">适 配 症 状</div>
+      <div class="h-iv" id="hadp">焦虑 · 烦躁</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ════════════════════════════
+   SCENE DATA
+════════════════════════════ */
+const SCENES = [
+  { id:'fuchun',  name:'富春山居', tag:'山水水墨 · 视觉疗愈',
+    desc:'远山淡墨、云雾缓流、江面平阔、轻舟无痕',
+    mood:'焦虑 · 烦躁 · 压力过载',
+    filter:'brightness(1.9) contrast(1.05)' },
+  { id:'yunshan', name:'云山禅境', tag:'极简禅意 · 静心安神',
+    desc:'孤峰耸立、云海漫涌、古松挺立、留白深远',
+    mood:'精神内耗 · 失眠 · 注意力涣散',
+    filter:'brightness(1.8) contrast(1.05)' },
+  { id:'xishan',  name:'溪山行旅', tag:'自然疗愈 · 疲惫修复',
+    desc:'浅溪、石桥、远山、雾霭、林间微光',
+    mood:'情绪低落 · 紧绷 · 疲惫',
+    filter:'brightness(1.8) contrast(1.05)' },
+  { id:'tingyu',  name:'听雨轩窗', tag:'中式园林 · 思绪纾解',
+    desc:'苏式园林、漏窗、荷塘、芭蕉、细雨轻落',
+    mood:'嘈杂环境 · 抑郁 · 思绪杂乱',
+    filter:'brightness(2.8) contrast(1.0) saturate(1.3)' },
+  { id:'bimo',    name:'笔墨静心', tag:'书房禅意 · 专注提升',
+    desc:'明式书房、文房四宝、竹影窗纱、青烟袅袅',
+    mood:'浮躁 · 考前紧张 · 专注力差',
+    filter:'brightness(3.2) contrast(0.95) saturate(0.8) sepia(0.2)' },
+  { id:'lanting', name:'兰亭曲水', tag:'竹林胜境 · 心情舒缓',
+    desc:'茂林修竹、曲水流觞、落花逐水',
+    mood:'社交压力 · 心情压抑',
+    filter:'brightness(1.9) contrast(1.05)' },
+];
+
+/* ════════════════════════════
+   THREE.JS — SPHERE VIEWER
+════════════════════════════ */
+const canvas = document.getElementById('glc');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.NoToneMapping;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 0, 0.01);
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Sphere — camera inside, normals flipped inward
+const geo = new THREE.SphereGeometry(500, 96, 48);
+geo.scale(-1, 1, 1);
+const mat = new THREE.MeshBasicMaterial({ color: 0x111008 });
+const mesh = new THREE.Mesh(geo, mat);
+scene.add(mesh);
+
+// Top/bottom caps to hide pole distortion
+const capMat = new THREE.MeshBasicMaterial({ color: 0x0a0806 });
+const topCap = new THREE.Mesh(new THREE.CircleGeometry(500, 64), capMat);
+topCap.rotation.x = -Math.PI / 2; topCap.position.y = 90; scene.add(topCap);
+const botCap = new THREE.Mesh(new THREE.CircleGeometry(500, 64), capMat);
+botCap.rotation.x = Math.PI / 2; botCap.position.y = -90; scene.add(botCap);
+
+/* ── ORBIT CONTROLS ── */
+let isDrag = false, px = 0, py = 0, vy = 0, vx = 0, ry = 0, rx = 0;
+const RS = 0.0028, DAMP = 0.90, MRX = Math.PI * 0.38;
+let autoRotSpeed = 0.0004; // slow auto-pan
+
+canvas.addEventListener('mousedown', e => { isDrag=true; px=e.clientX; py=e.clientY; autoRotSpeed=0; });
+window.addEventListener('mouseup', () => { isDrag=false; });
+window.addEventListener('mousemove', e => {
+  if (!isDrag) return;
+  vy += (e.clientX - px) * RS; vx += (e.clientY - py) * RS * 0.55;
+  px = e.clientX; py = e.clientY;
+});
+canvas.addEventListener('touchstart', e => { isDrag=true; px=e.touches[0].clientX; py=e.touches[0].clientY; autoRotSpeed=0; }, {passive:true});
+window.addEventListener('touchend', () => { isDrag=false; });
+window.addEventListener('touchmove', e => {
+  if (!isDrag) return;
+  vy += (e.touches[0].clientX - px) * RS; vx += (e.touches[0].clientY - py) * RS * 0.55;
+  px = e.touches[0].clientX; py = e.touches[0].clientY;
+}, {passive:true});
+canvas.addEventListener('wheel', e => {
+  camera.fov = Math.max(38, Math.min(100, camera.fov + e.deltaY * 0.04));
+  camera.updateProjectionMatrix();
+}, {passive:true});
+
+function updateCam() {
+  vy *= DAMP; vx *= DAMP;
+  ry += vy + autoRotSpeed;
+  rx += vx;
+  rx = Math.max(-MRX, Math.min(MRX, rx));
+  const qY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), ry);
+  const qX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), rx);
+  camera.quaternion.copy(qY).multiply(qX);
+}
+
+// Render loop
+const clock = new THREE.Clock();
+(function loop() {
+  requestAnimationFrame(loop);
+  clock.getDelta();
+  updateCam();
+  renderer.render(scene, camera);
+})();
+
+/* ════════════════════════════
+   TEXTURE LOADING
+   普通图片 → 拉伸铺满球面内壁
+   产生良好的沉浸感
+════════════════════════════ */
+const loader = new THREE.TextureLoader();
+const texCache = {};
+
+function loadSceneTex(id) {
+  if (texCache[id]) {
+    applyTex(texCache[id]);
+    return;
+  }
+  // 用 fetch + blob 绕过 CORS，同时兼容本地文件
+  fetch(id + '.jpg')
+    .then(r => { if (!r.ok) throw new Error('not found'); return r.blob(); })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const tex = new THREE.Texture(img);
+        tex.encoding = THREE.sRGBEncoding;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.repeat.x = -1; tex.offset.x = 1;
+        tex.needsUpdate = true;
+        texCache[id] = tex;
+        applyTex(tex);
+      };
+      img.src = url;
+    })
+    .catch(() => buildProceduralTex(id));
+}
+
+function applyTex(tex) {
+  mat.map = tex;
+  mat.needsUpdate = true;
+}
+
+/* ════════════════════════════
+   PROCEDURAL FALLBACK TEXTURES
+════════════════════════════ */
+const offC = document.getElementById('offC');
+const g = offC.getContext('2d');
+const W = 2048, H = 1024;
+
+function mkRng(seed) {
+  let s = seed|0;
+  return () => { s = Math.imul(48271,s)|0; return (s>>>0)/2**32; };
+}
+function lg(x0,y0,x1,y1,stops) {
+  const gr = g.createLinearGradient(x0,y0,x1,y1);
+  stops.forEach(([t,c]) => gr.addColorStop(t,c)); return gr;
+}
+function rg(cx,cy,r0,r1,stops) {
+  const gr = g.createRadialGradient(cx,cy,r0,cx,cy,r1);
+  stops.forEach(([t,c]) => gr.addColorStop(t,c)); return gr;
+}
+function bl(b,fn){g.save();g.filter=`blur(${b}px)`;fn();g.restore();}
+function ridge(rng,by,amp,freq,oct,col){
+  g.fillStyle=col;g.beginPath();g.moveTo(0,H);
+  for(let x=0;x<=W;x+=3){
+    let n=0,a=1,f=freq;
+    for(let o=0;o<oct;o++){n+=Math.sin(x*f*Math.PI*2/W+(rng()+o)*.5)*a;a*=.5;f*=2.1;}
+    g.lineTo(x,by+n*amp);
+  }
+  g.lineTo(W,H);g.closePath();g.fill();
+}
+function pine(x,y,h,a){
+  g.strokeStyle=`rgba(44,30,14,${a*.9})`;g.lineWidth=5;
+  g.beginPath();g.moveTo(x,y);g.lineTo(x+3,y-h);g.stroke();
+  for(let l=0;l<6;l++){
+    const ly=y-h*(.22+l*.14),lw=h*(.36-l*.04);
+    g.fillStyle=`rgba(30,65,34,${a*(.5+l*.07)})`;
+    [-1,1].forEach(d=>{g.beginPath();g.moveTo(x+3,ly-h*.09);g.bezierCurveTo(x+d*lw*.1,ly,x+d*lw,ly+h*.07,x+d*lw*1.1,ly+h*.03);g.bezierCurveTo(x+d*lw*.5,ly-h*.05,x+d*lw*.2,ly-h*.06,x+3,ly-h*.09);g.fill();});
+  }
+}
+
+const DRAWS = {
+  fuchun(rng){
+    g.fillStyle=lg(0,0,0,H,[[0,'#c0d0e0'],[.38,'#d6e2e8'],[.62,'#dee8e0'],[1,'#c6c2b0']]);g.fillRect(0,0,W,H);
+    bl(70,()=>{g.fillStyle=rg(W*.76,H*.13,0,W*.3,[[0,'rgba(255,236,170,.88)'],[1,'rgba(0,0,0,0)']]);g.fillRect(0,0,W,H);});
+    [{y:.71,a:56,d:.44,c:'rgba(176,194,212,'},{y:.65,a:76,d:.63,c:'rgba(140,162,184,'},{y:.59,a:96,d:.77,c:'rgba(98,126,150,'},{y:.53,a:116,d:.89,c:'rgba(63,90,114,'},{y:.47,a:130,d:.97,c:'rgba(38,62,86,'}].forEach((m,i)=>{
+      if(i<3)bl((3-i)*6,()=>ridge(rng,H*m.y,m.a,1.8+i*.6,4,m.c+m.d+')'));
+      else ridge(rng,H*m.y,m.a,1.8+i*.6,4,m.c+m.d+')');
+    });
+    bl(22,()=>{[[.63,.07],[.57,.10],[.50,.065]].forEach(([y,a])=>{g.fillStyle=lg(0,H*(y-.03),0,H*(y+.04),[[0,'rgba(255,255,255,0)'],[.5,`rgba(255,255,255,${a})`],[1,'rgba(255,255,255,0)']]);g.fillRect(0,H*(y-.03),W,H*.07);});});
+    g.fillStyle=lg(0,H*.72,0,H*.88,[[0,'rgba(145,173,203,0)'],[.3,'rgba(145,173,203,.8)'],[1,'rgba(115,150,183,.92)']]);g.fillRect(0,H*.72,W,H*.18);
+    for(let i=0;i<20;i++){g.strokeStyle=`rgba(192,210,230,${.43-i*.02})`;g.lineWidth=.9;g.beginPath();g.moveTo(W*.04,H*.758+i*7);g.lineTo(W*.96,H*.758+i*7);g.stroke();}
+    bl(4,()=>{g.save();g.globalAlpha=.22;g.scale(1,-1);g.translate(0,-H*1.54);ridge(rng,H*.50,112,1.8,4,'rgba(63,90,114,.72)');g.restore();g.globalAlpha=1;});
+    const bx=W*.33,by=H*.797;g.fillStyle='rgba(32,20,10,.94)';g.beginPath();g.moveTo(bx,by-5);g.bezierCurveTo(bx+7,by-11,bx+55,by-11,bx+65,by-5);g.lineTo(bx+68,by+3);g.lineTo(bx-3,by+3);g.closePath();g.fill();
+    g.strokeStyle='rgba(32,20,10,.82)';g.lineWidth=2;g.beginPath();g.moveTo(bx+33,by+2);g.lineTo(bx+31,by-40);g.stroke();
+    [W*.01,W*.78].forEach(ox=>{for(let r=0;r<22;r++){const rx=ox+rng()*W*.2,ry=H*.9,h=H*(.12+rng()*.06);g.strokeStyle=`rgba(70,50,24,${.5+rng()*.4})`;g.lineWidth=1.3;g.beginPath();g.moveTo(rx,ry);g.quadraticCurveTo(rx+(rng()*18-9),ry-h*.6,rx+(rng()*22-11),ry-h);g.stroke();g.fillStyle='rgba(80,56,24,.74)';g.beginPath();g.ellipse(rx+rng()*4-2,ry-h,3,11,.28,0,Math.PI*2);g.fill();}});
+    g.fillStyle=lg(0,H*.87,0,H,[[0,'rgba(102,122,142,0)'],[1,'#748898']]);g.fillRect(0,H*.87,W,H*.13);
+    g.fillStyle=rg(W/2,H/2,H*.35,H*.9,[[0,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,.3)']]);g.fillRect(0,0,W,H);
+  },
+  yunshan(rng){
+    g.fillStyle=lg(0,0,0,H,[[0,'#d6e3e8'],[.4,'#e6f0ec'],[1,'#d2e0dc']]);g.fillRect(0,0,W,H);
+    bl(46,()=>{for(let i=0;i<12;i++){g.fillStyle=`rgba(255,255,255,${.6+rng()*.3})`;g.beginPath();g.ellipse(rng()*W,H*(.50+rng()*.07),W*(.2+rng()*.14),H*(.07+rng()*.05),0,0,Math.PI*2);g.fill();}});
+    bl(10,()=>{ridge(rng,H*.66,70,.9,3,'rgba(145,162,174,.28)');ridge(rng,H*.60,95,1.2,3,'rgba(112,132,148,.38)');});
+    g.fillStyle='rgba(60,80,96,.97)';g.beginPath();g.moveTo(W*.02,H);g.bezierCurveTo(W*.15,H*.72,W*.32,H*.3,W*.5,H*.1);g.bezierCurveTo(W*.58,H*.22,W*.68,H*.46,W*.82,H*.62);g.bezierCurveTo(W*.88,H*.72,W*.94,H*.84,W*.98,H);g.closePath();g.fill();
+    g.fillStyle='rgba(60,80,96,.97)';g.beginPath();g.moveTo(0,H);g.bezierCurveTo(W*.02,H*.84,0,H*.72,0,H);g.fill();
+    bl(10,()=>{g.fillStyle='rgba(225,238,245,.78)';g.beginPath();g.ellipse(W*.5,H*.12,82,30,0,0,Math.PI*2);g.fill();});
+    bl(20,()=>{g.fillStyle='rgba(255,255,255,.7)';g.fillRect(0,H*.44,W,H*.09);g.fillStyle='rgba(255,255,255,.5)';g.fillRect(0,H*.55,W,H*.065);});
+    pine(W*.22,H*.63,138,1.0);pine(W*.74,H*.65,106,.92);
+    g.fillStyle=lg(0,H*.83,0,H,[[0,'rgba(138,168,138,0)'],[1,'rgba(108,140,112,.94)']]);g.fillRect(0,H*.83,W,H*.17);
+    g.fillStyle=rg(W/2,H/2,H*.3,H*.9,[[0,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,.2)']]);g.fillRect(0,0,W,H);
+  },
+  xishan(rng){
+    g.fillStyle=lg(0,0,0,H,[[0,'#a0c0b0'],[.4,'#b4d0be'],[1,'#8eb09e']]);g.fillRect(0,0,W,H);
+    bl(26,()=>{for(let r=0;r<9;r++){const rx=rng()*W;g.fillStyle='rgba(255,245,186,.22)';g.beginPath();g.moveTo(rx,0);g.lineTo(rx+42,H*.68);g.lineTo(rx+108,H*.68);g.lineTo(rx+65,0);g.fill();}});
+    bl(8,()=>{ridge(rng,H*.62,86,.9,3,'rgba(72,112,88,.72)');ridge(rng,H*.56,106,1.2,3,'rgba(50,90,68,.82)');});
+    ['rgba(88,146,100,','rgba(58,113,74,','rgba(34,92,50,','rgba(20,72,38,'].forEach((c,L)=>{const cnt=13+L*5;for(let t=0;t<cnt;t++){const tx=(t/cnt)*W+rng()*52-26,th=H*(.24+rng()*.13);g.fillStyle=c+(.72+L*.07)+')';g.beginPath();g.moveTo(tx,H*(.87-L*.04));g.bezierCurveTo(tx-th*.5,H*(.87-L*.04)-th*.4,tx-th*.4,H*(.87-L*.04)-th,tx,H*(.87-L*.04)-th);g.bezierCurveTo(tx+th*.4,H*(.87-L*.04)-th,tx+th*.5,H*(.87-L*.04)-th*.4,tx,H*(.87-L*.04));g.fill();}});
+    g.fillStyle=lg(0,H*.72,0,H*.85,[[0,'rgba(128,185,200,0)'],[.35,'rgba(128,188,202,.88)'],[1,'rgba(98,162,186,.72)']]);g.beginPath();g.moveTo(W*.06,H);g.bezierCurveTo(W*.22,H*.84,W*.38,H*.73,W*.52,H*.72);g.bezierCurveTo(W*.66,H*.71,W*.8,H*.76,W*.94,H);g.lineTo(W,H);g.lineTo(0,H);g.fill();
+    g.fillStyle='rgba(88,70,50,.92)';g.beginPath();g.ellipse(W*.52,H*.74,W*.054,H*.016,0,0,Math.PI*2);g.fill();
+    g.fillStyle=lg(0,H*.85,0,H,[[0,'rgba(42,98,55,0)'],[1,'rgba(28,80,44,.96)']]);g.fillRect(0,H*.85,W,H*.15);
+    g.fillStyle=rg(W/2,H/2,H*.3,H*.9,[[0,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,.22)']]);g.fillRect(0,0,W,H);
+  },
+  tingyu(rng){
+    g.fillStyle=lg(0,0,0,H,[[0,'#708298'],[.4,'#8aa2b6'],[1,'#607080']]);g.fillRect(0,0,W,H);
+    bl(26,()=>{for(let i=0;i<14;i++){g.fillStyle=`rgba(76,92,116,${.52+rng()*.3})`;g.beginPath();g.ellipse(rng()*W,H*(.1+rng()*.22),W*(.16+rng()*.12),H*(.055+rng()*.04),0,0,Math.PI*2);g.fill();}});
+    for(let r=0;r<700;r++){const rx=rng()*W,ry=rng()*H*.88,len=16+rng()*24;g.strokeStyle=`rgba(168,196,220,${.22+rng()*.26})`;g.lineWidth=.65;g.beginPath();g.moveTo(rx,ry);g.lineTo(rx+.12*len,ry+len);g.stroke();}
+    g.fillStyle='rgba(226,220,208,.92)';g.fillRect(W*.54,H*.36,W*.22,H*.38);
+    g.fillStyle='rgba(68,70,76,.95)';g.beginPath();g.moveTo(W*.5,H*.36);g.lineTo(W*.65,H*.26);g.lineTo(W*.8,H*.36);g.closePath();g.fill();
+    g.strokeStyle='rgba(68,56,38,.88)';g.lineWidth=14;g.beginPath();g.arc(W*.22,H*.6,74,0,Math.PI*2);g.stroke();
+    g.fillStyle='rgba(138,160,140,.38)';g.beginPath();g.arc(W*.22,H*.6,59,0,Math.PI*2);g.fill();
+    for(let l=0;l<16;l++){const lx=rng()*W*.52+W*.02,ly=H*(.72+rng()*.12),lr=20+rng()*28;g.fillStyle=`rgba(48,106,60,${.62+rng()*.28})`;g.beginPath();g.ellipse(lx,ly,lr,lr*.45,rng()*.6,0,Math.PI*2);g.fill();}
+    for(let f=0;f<7;f++){g.fillStyle='rgba(210,118,130,.88)';g.beginPath();g.arc(rng()*W*.44+W*.04,H*(.73+rng()*.08),8,0,Math.PI*2);g.fill();}
+    g.fillStyle=lg(0,H*.86,0,H,[[0,'rgba(62,80,100,0)'],[1,'rgba(44,60,80,.92)']]);g.fillRect(0,H*.86,W,H*.14);
+    g.fillStyle=rg(W/2,H/2,H*.25,H*.9,[[0,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,.3)']]);g.fillRect(0,0,W,H);
+  },
+  bimo(rng){
+    g.fillStyle=lg(0,0,0,H,[[0,'#281602'],[.35,'#562e08'],[1,'#724412']]);g.fillRect(0,0,W,H);
+    bl(52,()=>{g.fillStyle=rg(W*.6,H*.47,0,W*.5,[[0,'rgba(255,200,85,.88)'],[.4,'rgba(210,140,40,.45)'],[1,'rgba(0,0,0,0)']]);g.fillRect(0,0,W,H);g.fillStyle=rg(W*.6,H*.47,0,W*.18,[[0,'rgba(255,228,145,.58)'],[1,'rgba(0,0,0,0)']]);g.fillRect(0,0,W,H);});
+    g.fillStyle='rgba(66,40,12,.97)';g.fillRect(W*.72,H*.17,W*.14,H*.44);g.strokeStyle='rgba(98,60,16,.82)';g.lineWidth=2;g.strokeRect(W*.72,H*.17,W*.14,H*.44);
+    for(let sh=0;sh<3;sh++){g.strokeStyle='rgba(48,28,8,.72)';g.lineWidth=1.5;g.beginPath();g.moveTo(W*.72,H*(.27+sh*.11));g.lineTo(W*.86,H*(.27+sh*.11));g.stroke();}
+    for(let b=0;b<12;b++){const bx=W*.73+b*21,bs=Math.floor(b/4),by=H*(.195+bs*.11);g.fillStyle=`hsl(${20+rng()*36|0},${46+rng()*26|0}%,${30+rng()*20|0}%)`;g.fillRect(bx,by,17,H*(.09+rng()*.02));g.strokeStyle='rgba(188,148,68,.22)';g.lineWidth=.5;g.strokeRect(bx,by,17,H*.088);}
+    g.fillStyle='rgba(78,46,13,.97)';g.beginPath();g.moveTo(0,H*.58);g.lineTo(W,H*.55);g.lineTo(W,H);g.lineTo(0,H);g.fill();
+    g.strokeStyle='rgba(118,76,22,.62)';g.lineWidth=2;g.beginPath();g.moveTo(0,H*.58);g.lineTo(W,H*.55);g.stroke();
+    g.fillStyle='rgba(236,224,188,.97)';g.fillRect(W*.28,H*.36,W*.3,H*.21);g.strokeStyle='rgba(150,120,60,.52)';g.lineWidth=1.5;g.strokeRect(W*.28,H*.36,W*.3,H*.21);
+    g.strokeStyle='rgba(20,12,4,.78)';g.lineWidth=2.2;for(let l=0;l<5;l++){g.beginPath();g.moveTo(W*.31,H*.40+l*13);g.bezierCurveTo(W*.39,H*.40+l*13-4,W*.49,H*.40+l*13+4,W*.55,H*.40+l*13);g.stroke();}
+    g.fillStyle='rgba(22,14,7,.98)';g.beginPath();g.ellipse(W*.65,H*.563,31,19,0,0,Math.PI*2);g.fill();
+    g.strokeStyle='rgba(88,60,20,.92)';g.lineWidth=5;g.beginPath();g.moveTo(W*.7,H*.38);g.lineTo(W*.655,H*.583);g.stroke();
+    g.fillStyle='rgba(20,13,5,.97)';g.beginPath();g.moveTo(W*.648,H*.583);g.lineTo(W*.641,H*.645);g.lineTo(W*.665,H*.638);g.fill();
+    g.fillStyle='rgba(230,208,148,.97)';g.fillRect(W*.79-5,H*.41,10,H*.143);
+    bl(5,()=>{g.fillStyle='rgba(255,192,48,.95)';g.beginPath();g.ellipse(W*.79,H*.41,18,26,0,0,Math.PI*2);g.fill();});
+    bl(3,()=>{g.strokeStyle='rgba(66,88,32,.2)';g.lineWidth=9;for(let b=0;b<5;b++){const bx=W*(.05+b*.07);g.beginPath();g.moveTo(bx,0);g.lineTo(bx+14,H*.57);g.stroke();for(let s=0;s<4;s++){g.lineWidth=6;g.beginPath();g.moveTo(bx+s*4,H*(.1+s*.1));g.lineTo(bx-26,H*(.07+s*.1));g.stroke();}}});
+    g.fillStyle=lg(0,H*.84,0,H,[[0,'rgba(42,22,4,0)'],[1,'rgba(18,9,2,.97)']]);g.fillRect(0,H*.84,W,H*.16);
+    g.fillStyle=rg(W*.6,H*.5,H*.1,H*.88,[[0,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,.72)']]);g.fillRect(0,0,W,H);
+  },
+  lanting(rng){
+    g.fillStyle=lg(0,0,0,H,[[0,'#6caa88'],[.38,'#88c0a0'],[1,'#5c9c74']]);g.fillRect(0,0,W,H);
+    bl(20,()=>{for(let d=0;d<9;d++){g.fillStyle='rgba(210,250,168,.24)';g.beginPath();g.arc(rng()*W,H*(.18+rng()*.32),85+rng()*110,0,Math.PI*2);g.fill();}});
+    for(let b=0;b<30;b++){
+      const bx=(b/30)*W+rng()*58-29,bw=9+rng()*12,a=.45+rng()*.5,cv=rng()*26-13;
+      const gr=g.createLinearGradient(bx,0,bx+bw,0);
+      gr.addColorStop(0,`rgba(50,102,36,${a})`);gr.addColorStop(.5,`rgba(72,136,48,${a})`);gr.addColorStop(1,`rgba(38,82,26,${a})`);
+      g.fillStyle=gr;g.beginPath();g.moveTo(bx,H);g.bezierCurveTo(bx+cv*.3,H*.65,bx+cv*.7,H*.3,bx+cv,0);g.lineTo(bx+bw+cv,0);g.bezierCurveTo(bx+bw+cv*.7,H*.3,bx+bw+cv*.3,H*.65,bx+bw,H);g.closePath();g.fill();
+      for(let n=1;n<10;n++){const ny=H-n*(H/9);g.strokeStyle=`rgba(26,62,20,${a*.85})`;g.lineWidth=bw+3;g.beginPath();g.moveTo(bx-1,ny);g.lineTo(bx+bw+1,ny);g.stroke();}
+      for(let l=0;l<5;l++){const lx=bx+rng()*bw,ly=rng()*H*.65,ll=36+rng()*50,ld=(rng()-.5)*Math.PI*.9;g.strokeStyle=`rgba(42,118,36,${a*.7})`;g.lineWidth=2;g.beginPath();g.moveTo(lx,ly);g.bezierCurveTo(lx+Math.cos(ld)*ll*.4,ly+Math.sin(ld)*ll*.4,lx+Math.cos(ld)*ll*.8,ly+Math.sin(ld)*ll*.2,lx+Math.cos(ld)*ll,ly+Math.sin(ld)*ll*.05);g.stroke();}
+    }
+    g.fillStyle=lg(0,H*.76,0,H*.88,[[0,'rgba(85,172,150,0)'],[.4,'rgba(85,175,152,.85)'],[1,'rgba(62,148,126,.68)']]);g.beginPath();g.moveTo(0,H);g.bezierCurveTo(W*.14,H*.83,W*.3,H*.78,W*.48,H*.77);g.bezierCurveTo(W*.62,H*.77,W*.76,H*.8,W*.92,H);g.lineTo(W,H);g.lineTo(0,H);g.fill();
+    for(let p=0;p<50;p++){const px=rng()*W,py=H*(.28+rng()*.58);g.fillStyle=`rgba(230,165,168,${.38+rng()*.48})`;g.save();g.translate(px,py);g.rotate(rng()*Math.PI*2);g.beginPath();g.ellipse(0,0,6+rng()*7,3+rng()*4,0,0,Math.PI*2);g.fill();g.restore();}
+    g.fillStyle='rgba(125,108,78,.9)';g.beginPath();g.ellipse(W*.54,H*.73,52,16,0,0,Math.PI*2);g.fill();
+    g.fillStyle=lg(0,H*.84,0,H,[[0,'rgba(52,128,72,0)'],[1,'rgba(34,102,48,.97)']]);g.fillRect(0,H*.84,W,H*.16);
+    g.fillStyle=rg(W/2,H/2,H*.25,H*.9,[[0,'rgba(0,0,0,0)'],[1,'rgba(0,0,0,.22)']]);g.fillRect(0,0,W,H);
+  },
+};
+
+function buildProceduralTex(id) {
+  const seed = Array.from(id).reduce((a,c) => a + c.charCodeAt(0)*31, 0);
+  const rng = mkRng(seed);
+  g.clearRect(0,0,W,H);
+  if (DRAWS[id]) DRAWS[id](rng);
+  const tex = new THREE.CanvasTexture(offC);
+  tex.needsUpdate = true;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.repeat.x = -1; tex.offset.x = 1;
+  texCache[id] = tex;
+  applyTex(tex);
+}
+
+/* ════════════════════════════
+   AUDIO SYSTEM
+   每个场景独立白噪音 + 轻音乐
+════════════════════════════ */
+let aC = null;
+let masterGain = null;
+
+// 当前音频节点（方便停止）
+let noiseNodes = [], musicNodes = [], noiseGain = null, musicGain = null;
+let musicTimer = null;
+const aS = { n: false, m: false };
+let curSceneId = 'fuchun';
+
+// 各场景音效配置
+const AUDIO_CFG = {
+  fuchun: {
+    noiseName: '流水松风',
+    musicName: '古琴·平沙落雁',
+    // 白噪音：流水声（低频 + 带通）
+    noise: (ac, out) => {
+      const len = ac.sampleRate * 3;
+      const buf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) { last = (Math.random() * 2 - 1) * 0.3 + last * 0.85; d[i] = last; }
+      const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400; lp.Q.value = 0.8;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 200; bp.Q.value = 0.5;
+      src.connect(lp); lp.connect(bp); bp.connect(out); src.start();
+      return [src, lp, bp];
+    },
+    // 音乐：古琴风，悠长单音，五声音阶
+    music: (ac, out, vol) => {
+      // C大调五声：C E G A C'
+      const notes = [261.63, 329.63, 392.00, 440.00, 523.25];
+      const melody = [0,2,1,3,2,4,2,1,0,3,2,1,4,3,2,0];
+      const durs =   [3.5,2.5,3,2,4,3,2.5,3,4,2,3,2.5,4,3,3.5,4];
+      let t = ac.currentTime + 0.3;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const freq = notes[ni];
+        const dur = durs[i];
+        // 主音（古琴拨弦感：快攻慢衰）
+        const osc = ac.createOscillator(); osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        // 轻微颤音
+        const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4.5;
+        const lfoG = ac.createGain(); lfoG.gain.value = 1.5;
+        lfo.connect(lfoG); lfoG.connect(osc.frequency);
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.22, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(vol * 0.08, t + dur * 0.6);
+        g.gain.linearRampToValueAtTime(0.0001, t + dur * 0.98);
+        osc.connect(g); g.connect(out);
+        osc.start(t); osc.stop(t + dur); lfo.start(t); lfo.stop(t + dur);
+        nodes.push(osc, lfo, lfoG, g);
+        t += dur * 0.72;
+      });
+      return nodes;
+    },
+    musicDur: 55000
+  },
+
+  yunshan: {
+    noiseName: '空山风声',
+    musicName: '禅院·磬音',
+    noise: (ac, out) => {
+      const len = ac.sampleRate * 4;
+      const buf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.15;
+      const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 200;
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1200;
+      src.connect(hp); hp.connect(lp); lp.connect(out); src.start();
+      return [src, hp, lp];
+    },
+    music: (ac, out, vol) => {
+      // 磬音：单音长延音，G调
+      const bowls = [392.00, 523.25, 293.66, 440.00, 349.23, 523.25, 392.00];
+      const waits = [0, 5, 9, 14, 18, 23, 28];
+      const nodes = [];
+      const t0 = ac.currentTime + 0.5;
+      bowls.forEach((freq, i) => {
+        const osc = ac.createOscillator(); osc.type = 'sine';
+        osc.frequency.value = freq;
+        // 泛音
+        const osc2 = ac.createOscillator(); osc2.type = 'sine';
+        osc2.frequency.value = freq * 2.756;
+        const g = ac.createGain(); g.gain.setValueAtTime(0, t0 + waits[i]);
+        g.gain.linearRampToValueAtTime(vol * 0.28, t0 + waits[i] + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + waits[i] + 4.5);
+        const g2 = ac.createGain(); g2.gain.setValueAtTime(0, t0 + waits[i]);
+        g2.gain.linearRampToValueAtTime(vol * 0.06, t0 + waits[i] + 0.01);
+        g2.gain.exponentialRampToValueAtTime(0.0001, t0 + waits[i] + 2.5);
+        osc.connect(g); g.connect(out);
+        osc2.connect(g2); g2.connect(out);
+        osc.start(t0 + waits[i]); osc.stop(t0 + waits[i] + 5);
+        osc2.start(t0 + waits[i]); osc2.stop(t0 + waits[i] + 3);
+        nodes.push(osc, osc2, g, g2);
+      });
+      return nodes;
+    },
+    musicDur: 34000
+  },
+
+  xishan: {
+    noiseName: '溪流鸟鸣',
+    musicName: '竹笛·山涧',
+    noise: (ac, out) => {
+      const len = ac.sampleRate * 3;
+      const buf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      let v = 0;
+      for (let i = 0; i < len; i++) {
+        v = v * 0.92 + (Math.random() - 0.5) * 0.25;
+        // 加水流起伏感
+        d[i] = v * (0.6 + 0.4 * Math.sin(i / ac.sampleRate * 1.2));
+      }
+      const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 600; bp.Q.value = 1.2;
+      src.connect(bp); bp.connect(out); src.start();
+      // 鸟鸣感（间歇高频脉冲）
+      const bird = ac.createOscillator(); bird.type = 'sine'; bird.frequency.value = 2800;
+      const bG = ac.createGain(); bG.gain.value = 0.0001;
+      bird.connect(bG); bG.connect(out); bird.start();
+      const lfo2 = ac.createOscillator(); lfo2.type = 'square'; lfo2.frequency.value = 0.15;
+      const lfoG2 = ac.createGain(); lfoG2.gain.value = 0.015;
+      lfo2.connect(lfoG2); lfoG2.connect(bG.gain); lfo2.start();
+      return [src, bp, bird, bG, lfo2, lfoG2];
+    },
+    music: (ac, out, vol) => {
+      // 竹笛风格：G大调，轻快跳音
+      const scale = [392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 739.99, 783.99];
+      const melody = [0,2,4,3,2,4,5,4,2,0,1,2,4,6,5,4,2,4,3,2,0];
+      const durs =   [0.8,0.6,1.2,0.8,0.6,0.8,1.0,0.8,0.6,1.2,0.6,0.8,1.0,1.2,0.8,1.0,0.6,0.8,0.6,1.0,1.8];
+      let t = ac.currentTime + 0.2;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const osc = ac.createOscillator(); osc.type = 'sine';
+        osc.frequency.value = scale[ni];
+        const osc2 = ac.createOscillator(); osc2.type = 'triangle';
+        osc2.frequency.value = scale[ni] * 0.5;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.2, t + 0.04);
+        g.gain.linearRampToValueAtTime(vol * 0.12, t + durs[i] * 0.6);
+        g.gain.linearRampToValueAtTime(0.0001, t + durs[i] * 0.95);
+        const g2 = ac.createGain(); g2.gain.value = vol * 0.05;
+        osc.connect(g); g.connect(out);
+        osc2.connect(g2); g2.connect(out);
+        osc.start(t); osc.stop(t + durs[i]);
+        osc2.start(t); osc2.stop(t + durs[i]);
+        nodes.push(osc, osc2, g, g2);
+        t += durs[i] * 0.88;
+      });
+      return nodes;
+    },
+    musicDur: 28000
+  },
+
+  tingyu: {
+    noiseName: '听雨白噪音',
+    musicName: '琵琶·雨打芭蕉',
+    noise: (ac, out) => {
+      // 雨声：密集白噪音高频
+      const len = ac.sampleRate * 3;
+      const buf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.22;
+      const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1200;
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 8000;
+      // 雨滴打击感（低频脉冲）
+      const lp2 = ac.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 300;
+      const buf2 = ac.createBuffer(1, len, ac.sampleRate);
+      const d2 = buf2.getChannelData(0);
+      for (let i = 0; i < len; i++) {
+        const t2 = i / ac.sampleRate;
+        d2[i] = Math.random() < 0.003 ? (Math.random() - 0.5) * 0.5 : 0;
+      }
+      const drip = ac.createBufferSource(); drip.buffer = buf2; drip.loop = true;
+      drip.connect(lp2); lp2.connect(out);
+      src.connect(hp); hp.connect(lp); lp.connect(out);
+      src.start(); drip.start();
+      return [src, hp, lp, drip, lp2];
+    },
+    music: (ac, out, vol) => {
+      // 琵琶风格：快拨弦，F调
+      const notes = [349.23, 392.00, 440.00, 466.16, 523.25, 587.33, 622.25, 698.46];
+      const melody = [0,2,1,0,3,2,4,3,2,4,5,4,6,5,4,2,3,4,5,7,5,4,2,0];
+      const durs =   [0.3,0.3,0.3,0.6,0.3,0.3,0.6,0.3,0.3,0.3,0.6,0.3,0.3,0.3,0.6,0.3,0.3,0.5,0.3,0.6,0.3,0.3,0.5,1.0];
+      let t = ac.currentTime + 0.2;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const osc = ac.createOscillator(); osc.type = 'sawtooth';
+        osc.frequency.value = notes[ni];
+        const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 2000;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.15, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + durs[i] * 0.85);
+        osc.connect(filt); filt.connect(g); g.connect(out);
+        osc.start(t); osc.stop(t + durs[i]);
+        nodes.push(osc, filt, g);
+        t += durs[i];
+      });
+      return nodes;
+    },
+    musicDur: 16000
+  },
+
+  bimo: {
+    noiseName: '翻书·笔尖声',
+    musicName: '古筝·高山流水',
+    noise: (ac, out) => {
+      // 极安静：低频暖噪 + 偶尔翻书声
+      const len = ac.sampleRate * 4;
+      const buf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      let v = 0;
+      for (let i = 0; i < len; i++) {
+        v = v * 0.98 + (Math.random() - 0.5) * 0.04;
+        d[i] = v;
+      }
+      const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 300;
+      src.connect(lp); lp.connect(out); src.start();
+      return [src, lp];
+    },
+    music: (ac, out, vol) => {
+      // 古筝：C调，平静绵长，带滑音
+      const base = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25];
+      const melody = [4,5,6,8,7,6,5,4,2,0,1,2,4,5,4,2,4,6,8,9,8,6,5,4,2,4,5,4,2,0];
+      const durs =   [1.2,0.8,1.0,1.5,1.0,0.8,1.0,1.2,0.8,1.5,0.8,1.0,1.2,1.0,0.8,1.2,1.0,1.2,1.5,1.8,1.2,1.0,1.2,0.8,1.5,1.0,0.8,1.0,1.2,2.0];
+      let t = ac.currentTime + 0.4;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const freq = base[ni];
+        const osc = ac.createOscillator(); osc.type = 'triangle';
+        // 滑音效果
+        osc.frequency.setValueAtTime(freq * 1.02, t);
+        osc.frequency.linearRampToValueAtTime(freq, t + 0.12);
+        const osc2 = ac.createOscillator(); osc2.type = 'sine';
+        osc2.frequency.value = freq * 2;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.18, t + 0.06);
+        g.gain.exponentialRampToValueAtTime(vol * 0.06, t + durs[i] * 0.7);
+        g.gain.linearRampToValueAtTime(0.0001, t + durs[i] * 0.96);
+        const g2 = ac.createGain(); g2.gain.value = vol * 0.04;
+        osc.connect(g); g.connect(out);
+        osc2.connect(g2); g2.connect(out);
+        osc.start(t); osc.stop(t + durs[i]);
+        osc2.start(t); osc2.stop(t + durs[i]);
+        nodes.push(osc, osc2, g, g2);
+        t += durs[i] * 0.78;
+      });
+      return nodes;
+    },
+    musicDur: 52000
+  },
+
+  lanting: {
+    noiseName: '竹林风声',
+    musicName: '洞箫·曲水流觞',
+    noise: (ac, out) => {
+      // 竹林风：中频带通，轻柔起伏
+      const len = ac.sampleRate * 4;
+      const buf = ac.createBuffer(1, len, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      let v = 0;
+      for (let i = 0; i < len; i++) {
+        const wind = 0.5 + 0.5 * Math.sin(i / ac.sampleRate * 0.3);
+        v = v * 0.94 + (Math.random() - 0.5) * 0.18 * wind;
+        d[i] = v;
+      }
+      const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 800; bp.Q.value = 0.6;
+      src.connect(bp); bp.connect(out); src.start();
+      return [src, bp];
+    },
+    music: (ac, out, vol) => {
+      // 洞箫：D调，低沉悠扬，气息感
+      const scale = [293.66, 329.63, 369.99, 392.00, 440.00, 493.88, 554.37, 587.33];
+      const melody = [0,2,4,3,2,4,5,4,3,5,6,5,4,3,2,4,3,2,0,2,4,5,7,6,5,4,2,0];
+      const durs =   [1.5,1.0,1.8,1.2,1.0,1.5,1.8,1.2,1.0,1.5,2.0,1.5,1.2,1.0,1.5,1.2,1.0,1.5,1.8,1.2,1.5,2.0,2.2,1.5,1.2,1.5,1.8,2.5];
+      let t = ac.currentTime + 0.5;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const freq = scale[ni];
+        const osc = ac.createOscillator(); osc.type = 'sine';
+        osc.frequency.value = freq;
+        // 气息颤动
+        const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5.2;
+        const lG = ac.createGain(); lG.gain.value = freq * 0.012;
+        lfo.connect(lG); lG.connect(osc.frequency);
+        // 气声（噪音混合）
+        const nBuf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
+        const nd = nBuf.getChannelData(0);
+        for(let j=0;j<nd.length;j++) nd[j]=Math.random()*2-1;
+        const nSrc = ac.createBufferSource(); nSrc.buffer=nBuf; nSrc.loop=true;
+        const nFilt = ac.createBiquadFilter(); nFilt.type='bandpass'; nFilt.frequency.value=freq*1.5; nFilt.Q.value=8;
+        const nG = ac.createGain(); nG.gain.value = vol * 0.018;
+        nSrc.connect(nFilt); nFilt.connect(nG); nG.connect(out);
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.16, t + 0.15);
+        g.gain.linearRampToValueAtTime(vol * 0.12, t + durs[i] * 0.75);
+        g.gain.linearRampToValueAtTime(0.0001, t + durs[i] * 0.97);
+        osc.connect(g); g.connect(out);
+        osc.start(t); osc.stop(t + durs[i]);
+        lfo.start(t); lfo.stop(t + durs[i]);
+        nSrc.start(t); nSrc.stop(t + durs[i]);
+        nodes.push(osc, lfo, lG, g, nSrc, nFilt, nG);
+        t += durs[i] * 0.8;
+      });
+      return nodes;
+    },
+    musicDur: 62000
+  }
+};
+
+function initAudio() {
+  if (aC) return;
+  aC = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = aC.createGain(); masterGain.gain.value = 1;
+  masterGain.connect(aC.destination);
+  // 混响效果（轻微）
+  const convolver = aC.createConvolver();
+  const irLen = aC.sampleRate * 1.5;
+  const irBuf = aC.createBuffer(2, irLen, aC.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = irBuf.getChannelData(ch);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLen, 2.5);
+  }
+  convolver.buffer = irBuf;
+  // reverb chain
+  const revGain = aC.createGain(); revGain.gain.value = 0.18;
+  convolver.connect(revGain); revGain.connect(masterGain);
+  // 存到全局供音乐使用
+  aC._reverb = convolver; aC._reverbGain = revGain;
+}
+
+function stopCurrentAudio() {
+  [...noiseNodes, ...musicNodes].forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} });
+  noiseNodes = []; musicNodes = [];
+  clearTimeout(musicTimer);
+}
+
+function startNoise(id) {
+  if (!aC || !aS.n) return;
+  const cfg = AUDIO_CFG[id];
+  if (!cfg) return;
+  const g = aC.createGain(); g.gain.value = 0;
+  g.connect(masterGain);
+  noiseGain = g;
+  const nodes = cfg.noise(aC, g);
+  noiseNodes = nodes;
+  g.gain.linearRampToValueAtTime(0.55, aC.currentTime + 0.8);
+}
+
+function startMusic(id) {
+  if (!aC || !aS.m) return;
+  const cfg = AUDIO_CFG[id];
+  if (!cfg) return;
+  const g = aC.createGain(); g.gain.value = 0;
+  // 音乐走混响
+  if (aC._reverb) g.connect(aC._reverb);
+  g.connect(masterGain);
+  musicGain = g;
+  const nodes = cfg.music(aC, g, 1.0);
+  musicNodes = nodes;
+  g.gain.linearRampToValueAtTime(0.72, aC.currentTime + 1.0);
+  musicTimer = setTimeout(() => { if (aS.m) startMusic(curSceneId); }, cfg.musicDur);
+}
+
+function switchSceneAudio(id) {
+  curSceneId = id;
+  if (!aC) return;
+  // 淡出当前
+  if (noiseGain) { noiseGain.gain.linearRampToValueAtTime(0, aC.currentTime + 0.8); }
+  if (musicGain) { musicGain.gain.linearRampToValueAtTime(0, aC.currentTime + 0.8); }
+  clearTimeout(musicTimer);
+  const old = [...noiseNodes, ...musicNodes];
+  noiseNodes = []; musicNodes = [];
+  setTimeout(() => { old.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} }); }, 1000);
+  // 淡入新场景
+  setTimeout(() => {
+    if (aS.n) startNoise(id);
+    if (aS.m) startMusic(id);
+    // 更新按钮文字
+    updateAudioLabels(id);
+  }, 900);
+}
+
+function updateAudioLabels(id) {
+  const cfg = AUDIO_CFG[id] || {};
+  const anEl = document.getElementById('an');
+  const amEl = document.getElementById('am');
+  if (anEl) anEl.innerHTML = `<div class="a-dot"></div>${cfg.noiseName || '自然白噪音'}`;
+  if (amEl) amEl.innerHTML = `<div class="a-dot"></div>${cfg.musicName || '传统疗愈音乐'}`;
+}
+
+function togAudio(k) {
+  initAudio();
+  if (aC.state === 'suspended') aC.resume();
+  aS[k] = !aS[k];
+  document.getElementById(k === 'n' ? 'an' : 'am').classList.toggle('on', aS[k]);
+  if (k === 'n') {
+    if (aS.n) { startNoise(curSceneId); }
+    else {
+      if (noiseGain) noiseGain.gain.linearRampToValueAtTime(0, aC.currentTime + 0.6);
+      setTimeout(() => { noiseNodes.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} }); noiseNodes = []; }, 700);
+    }
+    toast(aS.n ? `🌿 ${AUDIO_CFG[curSceneId]?.noiseName || '自然白噪音'} 已开启` : '自然白噪音 已关闭');
+  } else {
+    if (aS.m) { startMusic(curSceneId); }
+    else {
+      clearTimeout(musicTimer);
+      if (musicGain) musicGain.gain.linearRampToValueAtTime(0, aC.currentTime + 0.6);
+      setTimeout(() => { musicNodes.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} }); musicNodes = []; }, 700);
+    }
+    toast(aS.m ? `🎵 ${AUDIO_CFG[curSceneId]?.musicName || '传统疗愈音乐'} 已开启` : '传统疗愈音乐 已关闭');
+  }
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ════════════════════════════
+   PAGE FLOW
+════════════════════════════ */
+const nums=['一','二','三','四','五','六'];
+const sgrid=document.getElementById('sgrid');
+const hsw=document.getElementById('hsw');
+
+SCENES.forEach((s,i)=>{
+  // Grid card
+  const c=document.createElement('div'); c.className='s-card';
+  c.innerHTML=`
+    <div class="s-num">${nums[i]}</div>
+    <div class="s-tag">${s.tag}</div>
+    <div class="s-name">${s.name}</div>
+    <div class="s-desc">${s.desc}</div>
+    <div class="s-mood">· ${s.mood}</div>
+    <div class="s-go">进入 →</div>`;
+  c.onclick=()=>enter(s.id);
+  sgrid.appendChild(c);
+  // Switcher
+  const b=document.createElement('button');
+  b.className='sw-btn'+(i===0?' on':'');
+  b.dataset.id=s.id; b.textContent=s.name;
+  b.onclick=()=>enter(s.id);
+  hsw.appendChild(b);
+});
+
+function goSel(){
+  document.getElementById('hud').classList.remove('on');
+  document.getElementById('sel').classList.add('on');
+  // 如果是自定义场景，恢复 Three.js canvas
+  const customBg = document.getElementById('customBg');
+  if (customBg) { customBg.remove(); canvas.style.display = 'block'; }
+}
+
+function enter(id){
+  const s=SCENES.find(x=>x.id===id); if(!s) return;
+  const ov=document.getElementById('ov');
+  ov.classList.add('on');
+  setTimeout(()=>{
+    document.getElementById('hname').textContent=s.name;
+    document.getElementById('hadp').textContent=s.mood;
+    document.querySelectorAll('.sw-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
+    // Apply per-scene brightness filter
+    canvas.style.filter = s.filter || 'brightness(1.8)';
+    ry=0; rx=0; vy=0; vx=0; autoRotSpeed=0.0004;
+    loadSceneTex(id);
+    // Switch audio to new scene
+    switchSceneAudio(id);
+    updateAudioLabels(id);
+    document.getElementById('sel').classList.remove('on');
+    document.getElementById('hud').classList.add('on');
+    ov.classList.remove('on');
+  },480);
+}
+
+/* ════════════════════════════
+   CUSTOM SCENE GENERATOR
+════════════════════════════ */
+const genOriginalHTML = `
+  <div>
+    <div class="gen-label">选择灵感</div>
+    <div class="gen-examples">
+      <button class="gen-eg" onclick="fillEg(this)">月色下的竹林小径</button>
+      <button class="gen-eg" onclick="fillEg(this)">江南烟雨中的古桥</button>
+      <button class="gen-eg" onclick="fillEg(this)">云雾缭绕的山间禅寺</button>
+      <button class="gen-eg" onclick="fillEg(this)">荷花池边的亭台楼阁</button>
+      <button class="gen-eg" onclick="fillEg(this)">松间明月照清泉</button>
+      <button class="gen-eg" onclick="fillEg(this)">秋日芦苇荡漫天红霞</button>
+    </div>
+  </div>
+  <div>
+    <div class="gen-label">描述你的场景</div>
+    <textarea id="ginput" placeholder="描述你想要的疗愈场景，比如：一片宁静的梅花林，雪后初晴，远处有隐隐青山…"></textarea>
+  </div>
+  <div class="gen-status" id="gstatus"></div>
+  <div class="gen-btns">
+    <button class="gen-btn cancel" onclick="closeGen()">取 消</button>
+    <button class="gen-btn" id="gbtn" onclick="generateScene()">✦ 生 成 提 示 词</button>
+  </div>
+`;
+
+function openGen() {
+  document.getElementById('sel').classList.remove('on');
+  document.getElementById('gen').classList.add('on');
+  resetGenPanel();
+}
+function resetGenPanel() {
+  document.getElementById('gen-inner').innerHTML = genOriginalHTML;
+}
+function closeGen() {
+  document.getElementById('gen').classList.remove('on');
+  document.getElementById('sel').classList.add('on');
+}
+function fillEg(btn) {
+  var ta = document.getElementById('ginput');
+  if (ta) ta.value = btn.textContent;
+}
+function setStatus(html) {
+  var el = document.getElementById('gstatus');
+  if (el) el.innerHTML = html;
+}
+
+function generateScene() {
+  const input = document.getElementById('ginput').value.trim();
+  if (!input) { setStatus('请先输入场景描述～'); return; }
+
+  const kwMap = [
+    ['竹林小径','bamboo grove path'],['竹林','bamboo grove'],['竹','bamboo'],
+    ['梅花林','plum blossom forest'],['梅花','plum blossom'],['梅','plum'],
+    ['松树','pine tree'],['松间','among pine trees'],['松','pine'],
+    ['荷花池','lotus pond'],['荷花','lotus flower'],['荷','lotus'],
+    ['芦苇荡','reed marshland'],['芦苇','reed'],['桃花','peach blossom'],
+    ['远山','distant mountains'],['山峰','mountain peak'],['山脉','mountain range'],['山间','mountain valley'],['山','mountain'],
+    ['溪流','stream'],['瀑布','waterfall'],['湖泊','lake'],
+    ['江南烟雨','misty rainy Jiangnan'],['江南','Jiangnan countryside'],
+    ['江','river'],['湖','lake'],['溪','stream'],['河','river'],
+    ['云海','sea of clouds'],['云雾','misty clouds'],['云雾缭绕','swirling mist and clouds'],['雾','mist'],['云','cloud'],
+    ['烟雨','misty rain'],['细雨','gentle rain'],['秋雨','autumn rain'],['雨打芭蕉','rain on banana leaves'],['雨','rain'],
+    ['雪后初晴','clear sky after snow'],['雪景','snow scene'],['雪','snow'],
+    ['明月','bright moon'],['月色','moonlight'],['月照','moonlit'],['月','moon'],['星','star'],
+    ['夕阳红霞','red sunset glow'],['夕阳','sunset'],['日出','sunrise'],['晨光','morning light'],['黄昏','dusk'],['清晨','dawn'],
+    ['漫天红霞','crimson sky at dusk'],
+    ['古石桥','ancient stone bridge'],['古桥','ancient bridge'],['石桥','stone bridge'],['桥','bridge'],
+    ['山间禅寺','mountain zen temple'],['禅寺','zen temple'],['古寺','ancient temple'],['寺庙','temple'],['寺','temple'],
+    ['亭台楼阁','pavilions and terraces'],['亭子','pavilion'],['亭','pavilion'],
+    ['庭院','courtyard'],['书房','study room'],
+    ['孤舟','lone boat'],['小船','small boat'],['船','boat'],
+    ['秋日','autumn day'],['秋天','autumn'],['春天','spring'],['冬天','winter'],['夏天','summer'],
+    ['清泉','clear spring'],['泉水','spring water'],
+    ['幽静','serene'],['宁静','peaceful'],['空灵','ethereal'],['禅意','zen spirit'],['禅','zen'],
+    ['小径','winding path'],['中的','with'],['边的','beside'],['下的','under'],['照','illuminating'],
+  ];
+  let desc = input;
+  kwMap.forEach(([cn,en]) => { desc = desc.replace(new RegExp(cn,'g'), en); });
+
+  const prompt = 'Chinese ink wash painting shanshui, ' + desc +
+    ', wide panoramic landscape, misty atmosphere, soft grey brushstrokes, zen minimalist, no text, no people';
+
+  // 显示提示词和推荐生成地址
+  document.getElementById('gen-inner').innerHTML = `
+    <div style="margin-bottom:1.2rem;">
+      <div class="gen-label">你的水墨提示词已生成</div>
+      <div style="background:rgba(10,7,3,.6);border:.5px solid rgba(196,149,90,.2);padding:.9rem 1rem;font-size:.72rem;color:rgba(235,220,195,.6);line-height:1.8;letter-spacing:.05em;word-break:break-all;">${prompt}</div>
+      <button onclick="navigator.clipboard.writeText('${prompt.replace(/'/g,"\\'")}');this.textContent='已复制 ✓';setTimeout(()=>this.textContent='复制提示词',1500)" style="margin-top:.6rem;padding:.3rem .8rem;background:transparent;border:.5px solid rgba(196,149,90,.3);color:rgba(196,149,90,.6);font-size:.6rem;letter-spacing:.2em;cursor:pointer;font-family:inherit;">复制提示词</button>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <div class="gen-label">推荐去这些平台生成（免费）</div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.8rem;">
+        <a href="https://skybox.blockadelabs.com" target="_blank" style="padding:.35rem .8rem;border:.5px solid rgba(196,149,90,.25);color:rgba(196,149,90,.65);font-size:.62rem;letter-spacing:.15em;text-decoration:none;">Skybox AI ↗</a>
+        <a href="https://leonardo.ai" target="_blank" style="padding:.35rem .8rem;border:.5px solid rgba(196,149,90,.25);color:rgba(196,149,90,.65);font-size:.62rem;letter-spacing:.15em;text-decoration:none;">Leonardo.ai ↗</a>
+        <a href="https://dreamstudio.ai" target="_blank" style="padding:.35rem .8rem;border:.5px solid rgba(196,149,90,.25);color:rgba(196,149,90,.65);font-size:.62rem;letter-spacing:.15em;text-decoration:none;">DreamStudio ↗</a>
+      </div>
+      <div style="font-size:.6rem;color:rgba(235,220,195,.28);letter-spacing:.1em;line-height:1.8;">生成后右键复制图片地址，或上传图床获取链接，粘贴到下方</div>
+    </div>
+    <div>
+      <div class="gen-label">粘贴图片链接直接进入场景</div>
+      <input id="imgurl-input" type="text" placeholder="https://... 粘贴图片URL" style="width:100%;padding:.7rem 1rem;background:rgba(10,7,3,.6);border:.5px solid rgba(196,149,90,.2);color:#f0e8d8;font-family:inherit;font-size:.8rem;letter-spacing:.05em;outline:none;margin-bottom:.8rem;"/>
+      <div style="display:flex;gap:.7rem;">
+        <button onclick="closeGen()" style="flex:0 0 auto;padding:.7rem 1.1rem;background:transparent;border:.5px solid rgba(235,220,195,.14);color:rgba(235,220,195,.35);font-family:inherit;font-size:.65rem;letter-spacing:.2em;cursor:pointer;">取 消</button>
+        <button onclick="enterWithUrl()" style="flex:1;padding:.7rem;background:rgba(196,149,90,.18);border:.5px solid rgba(196,149,90,.35);color:rgba(235,220,195,.88);font-family:'ZCOOL XiaoWei',serif;font-size:.9rem;letter-spacing:.25em;cursor:pointer;">✦ 进 入 场 景</button>
+      </div>
+    </div>
+  `;
+}
+
+function enterWithUrl() {
+  const url = document.getElementById('imgurl-input')?.value.trim();
+  if (!url) { return; }
+
+  var old = document.getElementById('customBg');
+  if (old) old.remove();
+
+  var imgEl = document.createElement('img');
+  imgEl.id = 'customBg';
+  imgEl.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;filter:brightness(1.85) contrast(1.05);cursor:grab;';
+
+  imgEl.onload = function() {
+    canvas.style.display = 'none';
+    document.body.appendChild(imgEl);
+    var drag=false, sx=0, px=0;
+    imgEl.addEventListener('mousedown', function(e){ drag=true; sx=e.clientX-px; imgEl.style.cursor='grabbing'; });
+    window.addEventListener('mouseup', function(){ drag=false; imgEl.style.cursor='grab'; });
+    window.addEventListener('mousemove', function(e){
+      if(!drag) return;
+      px = e.clientX - sx;
+      px = Math.max(-(imgEl.offsetWidth - window.innerWidth), Math.min(0, px));
+      imgEl.style.transform = 'translateX('+px+'px)';
+    });
+    document.getElementById('hname').textContent = '✦ 我的水墨世界';
+    document.getElementById('hadp').textContent = '专属水墨疗愈场景';
+    document.querySelectorAll('.sw-btn').forEach(function(b){ b.classList.remove('on'); });
+    curSceneId = 'custom';
+    updateAudioLabels('fuchun');
+    switchSceneAudio('fuchun');
+    document.getElementById('gen').classList.remove('on');
+    document.getElementById('hud').classList.add('on');
+    // Reset gen panel for next time
+    setTimeout(resetGenPanel, 500);
+  };
+
+  imgEl.onerror = function() {
+    alert('图片链接无法加载，请检查链接是否有效');
+  };
+  imgEl.src = url;
+}
+
+function resetGenPanel() {
+  document.getElementById('gen-inner').innerHTML = genOriginalHTML;
+}
+
+// 呼吸周期：3500+1500+4500+4500=14000ms，与CSS动画同步
+const bStates=['缓缓吸气','屏息片刻','缓缓呼气','自然呼吸'], bDurs=[3500,1500,4500,4500];
+let bI=0;
+(function breath(){ document.getElementById('bst').textContent=bStates[bI]; bI=(bI+1)%4; setTimeout(breath,bDurs[bI]); })();
+
+/* ════════════════════════════
+   BOOT
+════════════════════════════ */
+(function boot(){
+  const bar=document.getElementById('lf'); let p=0;
+  // Load first scene immediately
+  loadSceneTex('fuchun');
+  canvas.style.filter = SCENES[0].filter || 'brightness(1.8)';
+  updateAudioLabels('fuchun');
+  const iv=setInterval(()=>{
+    p+=12+Math.random()*18; bar.style.width=Math.min(p,95)+'%';
+    if(p>=100){
+      clearInterval(iv); bar.style.width='100%';
+      setTimeout(()=>{
+        document.getElementById('load').classList.add('out');
+        setTimeout(()=>{
+          document.getElementById('load').style.display='none';
+          document.getElementById('sel').classList.add('on');
+        },1400);
+      },200);
+    }
+  },100);
+})();
+</script>
+</body>
+</html>
