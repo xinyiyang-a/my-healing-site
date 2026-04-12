@@ -779,7 +779,7 @@ const AUDIO_CFG = {
       return [src, hp, lp];
     },
     music: async (ac, out, vol) => {
-  const audioUrl = 'yushan.mp3'; 
+  const audioUrl = 'assets/yunshan.mp3'; 
   const nodes = [];
 
   try {
@@ -787,7 +787,7 @@ const AUDIO_CFG = {
     
     // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
     // 这里假设 curSceneId 是全局变量
-    if (typeof curSceneId !== 'undefined' && curSceneId !== 'yushan') return [];
+    if (typeof curSceneId !== 'undefined' && curSceneId !== 'yunshan') return [];
 
     const src = ac.createBufferSource();
     src.buffer = buffer;
