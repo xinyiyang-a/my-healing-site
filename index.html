@@ -778,33 +778,36 @@ const AUDIO_CFG = {
       src.connect(hp); hp.connect(lp); lp.connect(out); src.start();
       return [src, hp, lp];
     },
-    music: (ac, out, vol) => {
-      // 磬音：单音长延音，G调
-      const bowls = [392.00, 523.25, 293.66, 440.00, 349.23, 523.25, 392.00];
-      const waits = [0, 5, 9, 14, 18, 23, 28];
-      const nodes = [];
-      const t0 = ac.currentTime + 0.5;
-      bowls.forEach((freq, i) => {
-        const osc = ac.createOscillator(); osc.type = 'sine';
-        osc.frequency.value = freq;
-        // 泛音
-        const osc2 = ac.createOscillator(); osc2.type = 'sine';
-        osc2.frequency.value = freq * 2.756;
-        const g = ac.createGain(); g.gain.setValueAtTime(0, t0 + waits[i]);
-        g.gain.linearRampToValueAtTime(vol * 0.28, t0 + waits[i] + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001, t0 + waits[i] + 4.5);
-        const g2 = ac.createGain(); g2.gain.setValueAtTime(0, t0 + waits[i]);
-        g2.gain.linearRampToValueAtTime(vol * 0.06, t0 + waits[i] + 0.01);
-        g2.gain.exponentialRampToValueAtTime(0.0001, t0 + waits[i] + 2.5);
-        osc.connect(g); g.connect(out);
-        osc2.connect(g2); g2.connect(out);
-        osc.start(t0 + waits[i]); osc.stop(t0 + waits[i] + 5);
-        osc2.start(t0 + waits[i]); osc2.stop(t0 + waits[i] + 3);
-        nodes.push(osc, osc2, g, g2);
-      });
+    music: async (ac, out, vol) => {
+  const audioUrl = 'assets/yushan.mp3'; 
+  const nodes = [];
+
+  try {
+    const buffer = await fetchAudioBuffer(ac, audioUrl);
+    
+    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
+    // 这里假设 curSceneId 是全局变量
+    if (typeof curSceneId !== 'undefined' && curSceneId !== 'yushan') return [];
+
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    src.loop = false; 
+
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
+
+    src.connect(g);
+    g.connect(out);
+    src.start(0);
+
+    nodes.push(src, g);
+  } catch (e) {
+    console.error("音频加载失败:", e);
+  }
       return nodes;
     },
-    musicDur: 34000
+    musicDur: 900000
   },
 
   xishan: {
@@ -832,34 +835,36 @@ const AUDIO_CFG = {
       lfo2.connect(lfoG2); lfoG2.connect(bG.gain); lfo2.start();
       return [src, bp, bird, bG, lfo2, lfoG2];
     },
-    music: (ac, out, vol) => {
-      // 竹笛风格：G大调，轻快跳音
-      const scale = [392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 739.99, 783.99];
-      const melody = [0,2,4,3,2,4,5,4,2,0,1,2,4,6,5,4,2,4,3,2,0];
-      const durs =   [0.8,0.6,1.2,0.8,0.6,0.8,1.0,0.8,0.6,1.2,0.6,0.8,1.0,1.2,0.8,1.0,0.6,0.8,0.6,1.0,1.8];
-      let t = ac.currentTime + 0.2;
-      const nodes = [];
-      melody.forEach((ni, i) => {
-        const osc = ac.createOscillator(); osc.type = 'sine';
-        osc.frequency.value = scale[ni];
-        const osc2 = ac.createOscillator(); osc2.type = 'triangle';
-        osc2.frequency.value = scale[ni] * 0.5;
-        const g = ac.createGain();
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(vol * 0.2, t + 0.04);
-        g.gain.linearRampToValueAtTime(vol * 0.12, t + durs[i] * 0.6);
-        g.gain.linearRampToValueAtTime(0.0001, t + durs[i] * 0.95);
-        const g2 = ac.createGain(); g2.gain.value = vol * 0.05;
-        osc.connect(g); g.connect(out);
-        osc2.connect(g2); g2.connect(out);
-        osc.start(t); osc.stop(t + durs[i]);
-        osc2.start(t); osc2.stop(t + durs[i]);
-        nodes.push(osc, osc2, g, g2);
-        t += durs[i] * 0.88;
-      });
+    music: async (ac, out, vol) => {
+  const audioUrl = 'assets/xishan.mp3'; 
+  const nodes = [];
+
+  try {
+    const buffer = await fetchAudioBuffer(ac, audioUrl);
+    
+    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
+    // 这里假设 curSceneId 是全局变量
+    if (typeof curSceneId !== 'undefined' && curSceneId !== 'xishan') return [];
+
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    src.loop = false; 
+
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
+
+    src.connect(g);
+    g.connect(out);
+    src.start(0);
+
+    nodes.push(src, g);
+  } catch (e) {
+    console.error("音频加载失败:", e);
+  }
       return nodes;
     },
-    musicDur: 28000
+    musicDur: 900000
   },
 
   tingyu: {
@@ -888,29 +893,36 @@ const AUDIO_CFG = {
       src.start(); drip.start();
       return [src, hp, lp, drip, lp2];
     },
-    music: (ac, out, vol) => {
-      // 琵琶风格：快拨弦，F调
-      const notes = [349.23, 392.00, 440.00, 466.16, 523.25, 587.33, 622.25, 698.46];
-      const melody = [0,2,1,0,3,2,4,3,2,4,5,4,6,5,4,2,3,4,5,7,5,4,2,0];
-      const durs =   [0.3,0.3,0.3,0.6,0.3,0.3,0.6,0.3,0.3,0.3,0.6,0.3,0.3,0.3,0.6,0.3,0.3,0.5,0.3,0.6,0.3,0.3,0.5,1.0];
-      let t = ac.currentTime + 0.2;
-      const nodes = [];
-      melody.forEach((ni, i) => {
-        const osc = ac.createOscillator(); osc.type = 'sawtooth';
-        osc.frequency.value = notes[ni];
-        const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 2000;
-        const g = ac.createGain();
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(vol * 0.15, t + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + durs[i] * 0.85);
-        osc.connect(filt); filt.connect(g); g.connect(out);
-        osc.start(t); osc.stop(t + durs[i]);
-        nodes.push(osc, filt, g);
-        t += durs[i];
-      });
+    music: async (ac, out, vol) => {
+  const audioUrl = 'assets/tingyu.mp3'; 
+  const nodes = [];
+
+  try {
+    const buffer = await fetchAudioBuffer(ac, audioUrl);
+    
+    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
+    // 这里假设 curSceneId 是全局变量
+    if (typeof curSceneId !== 'undefined' && curSceneId !== 'tingyu') return [];
+
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    src.loop = false; 
+
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
+
+    src.connect(g);
+    g.connect(out);
+    src.start(0);
+
+    nodes.push(src, g);
+  } catch (e) {
+    console.error("音频加载失败:", e);
+  }
       return nodes;
     },
-    musicDur: 16000
+    musicDur: 900000
   },
 
   bimo: {
@@ -931,37 +943,35 @@ const AUDIO_CFG = {
       src.connect(lp); lp.connect(out); src.start();
       return [src, lp];
     },
-    music: (ac, out, vol) => {
-      // 古筝：C调，平静绵长，带滑音
-      const base = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25];
-      const melody = [4,5,6,8,7,6,5,4,2,0,1,2,4,5,4,2,4,6,8,9,8,6,5,4,2,4,5,4,2,0];
-      const durs =   [1.2,0.8,1.0,1.5,1.0,0.8,1.0,1.2,0.8,1.5,0.8,1.0,1.2,1.0,0.8,1.2,1.0,1.2,1.5,1.8,1.2,1.0,1.2,0.8,1.5,1.0,0.8,1.0,1.2,2.0];
-      let t = ac.currentTime + 0.4;
-      const nodes = [];
-      melody.forEach((ni, i) => {
-        const freq = base[ni];
-        const osc = ac.createOscillator(); osc.type = 'triangle';
-        // 滑音效果
-        osc.frequency.setValueAtTime(freq * 1.02, t);
-        osc.frequency.linearRampToValueAtTime(freq, t + 0.12);
-        const osc2 = ac.createOscillator(); osc2.type = 'sine';
-        osc2.frequency.value = freq * 2;
-        const g = ac.createGain();
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(vol * 0.18, t + 0.06);
-        g.gain.exponentialRampToValueAtTime(vol * 0.06, t + durs[i] * 0.7);
-        g.gain.linearRampToValueAtTime(0.0001, t + durs[i] * 0.96);
-        const g2 = ac.createGain(); g2.gain.value = vol * 0.04;
-        osc.connect(g); g.connect(out);
-        osc2.connect(g2); g2.connect(out);
-        osc.start(t); osc.stop(t + durs[i]);
-        osc2.start(t); osc2.stop(t + durs[i]);
-        nodes.push(osc, osc2, g, g2);
-        t += durs[i] * 0.78;
-      });
+    music: async (ac, out, vol) => {
+  const audioUrl = 'assets/bimo.mp3'; 
+  const nodes = [];
+
+  try {
+    const buffer = await fetchAudioBuffer(ac, audioUrl);
+    
+    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
+    // 这里假设 curSceneId 是全局变量
+    if (typeof curSceneId !== 'undefined' && curSceneId !== 'bimo') return [];
+
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    src.loop = false; 
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
+
+    src.connect(g);
+    g.connect(out);
+    src.start(0);
+
+    nodes.push(src, g);
+  } catch (e) {
+    console.error("音频加载失败:", e);
+  }
       return nodes;
     },
-    musicDur: 52000
+    musicDur: 900000
   },
 
   lanting: {
@@ -983,44 +993,36 @@ const AUDIO_CFG = {
       src.connect(bp); bp.connect(out); src.start();
       return [src, bp];
     },
-    music: (ac, out, vol) => {
-      // 洞箫：D调，低沉悠扬，气息感
-      const scale = [293.66, 329.63, 369.99, 392.00, 440.00, 493.88, 554.37, 587.33];
-      const melody = [0,2,4,3,2,4,5,4,3,5,6,5,4,3,2,4,3,2,0,2,4,5,7,6,5,4,2,0];
-      const durs =   [1.5,1.0,1.8,1.2,1.0,1.5,1.8,1.2,1.0,1.5,2.0,1.5,1.2,1.0,1.5,1.2,1.0,1.5,1.8,1.2,1.5,2.0,2.2,1.5,1.2,1.5,1.8,2.5];
-      let t = ac.currentTime + 0.5;
-      const nodes = [];
-      melody.forEach((ni, i) => {
-        const freq = scale[ni];
-        const osc = ac.createOscillator(); osc.type = 'sine';
-        osc.frequency.value = freq;
-        // 气息颤动
-        const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5.2;
-        const lG = ac.createGain(); lG.gain.value = freq * 0.012;
-        lfo.connect(lG); lG.connect(osc.frequency);
-        // 气声（噪音混合）
-        const nBuf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
-        const nd = nBuf.getChannelData(0);
-        for(let j=0;j<nd.length;j++) nd[j]=Math.random()*2-1;
-        const nSrc = ac.createBufferSource(); nSrc.buffer=nBuf; nSrc.loop=true;
-        const nFilt = ac.createBiquadFilter(); nFilt.type='bandpass'; nFilt.frequency.value=freq*1.5; nFilt.Q.value=8;
-        const nG = ac.createGain(); nG.gain.value = vol * 0.018;
-        nSrc.connect(nFilt); nFilt.connect(nG); nG.connect(out);
-        const g = ac.createGain();
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(vol * 0.16, t + 0.15);
-        g.gain.linearRampToValueAtTime(vol * 0.12, t + durs[i] * 0.75);
-        g.gain.linearRampToValueAtTime(0.0001, t + durs[i] * 0.97);
-        osc.connect(g); g.connect(out);
-        osc.start(t); osc.stop(t + durs[i]);
-        lfo.start(t); lfo.stop(t + durs[i]);
-        nSrc.start(t); nSrc.stop(t + durs[i]);
-        nodes.push(osc, lfo, lG, g, nSrc, nFilt, nG);
-        t += durs[i] * 0.8;
-      });
+    music: async (ac, out, vol) => {
+  const audioUrl = 'assets/lanting.mp3'; 
+  const nodes = [];
+
+  try {
+    const buffer = await fetchAudioBuffer(ac, audioUrl);
+    
+    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
+    // 这里假设 curSceneId 是全局变量
+    if (typeof curSceneId !== 'undefined' && curSceneId !== 'lanting') return [];
+
+    const src = ac.createBufferSource();
+    src.buffer = buffer;
+    src.loop = false; 
+
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
+
+    src.connect(g);
+    g.connect(out);
+    src.start(0);
+
+    nodes.push(src, g);
+  } catch (e) {
+    console.error("音频加载失败:", e);
+  }
       return nodes;
     },
-    musicDur: 62000
+    musicDur: 900000
   }
 };
 
