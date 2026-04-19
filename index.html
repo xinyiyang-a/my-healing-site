@@ -326,6 +326,84 @@ textarea#ginput::placeholder{color:rgba(235,220,195,.22);font-size:.78rem;}
   letter-spacing:.3em;margin-top:.3rem;
 }
 
+/* ─── VR 按钮 ─── */
+#vr-btn{
+  position:fixed;bottom:2rem;right:2rem;z-index:150;
+  display:none;
+  align-items:center;gap:.55rem;
+  padding:.6rem 1.3rem;
+  background:rgba(196,149,90,.15);
+  border:.5px solid rgba(196,149,90,.5);
+  color:rgba(240,232,216,.85);
+  font-family:'Noto Serif SC',serif;font-size:.72rem;letter-spacing:.28em;
+  cursor:pointer;transition:all .25s;border-radius:2px;
+  backdrop-filter:blur(8px);
+}
+#vr-btn:hover{background:rgba(196,149,90,.3);color:#f0e8d8;border-color:rgba(196,149,90,.8);}
+#vr-btn.presenting{background:rgba(139,32,32,.25);border-color:rgba(200,80,80,.6);color:rgba(240,200,200,.9);}
+.vr-icon{font-size:1rem;}
+
+/* ─── 呼吸引导 ─── */
+.h-breath{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+  pointer-events:none;
+}
+.b-svg{overflow:visible;filter:drop-shadow(0 0 18px rgba(240,228,200,.25));}
+
+/* 14s 完整周期：3.5s吸(25%) + 1.5s屏息(36%) + 4.5s呼(67%) + 4.5s自然 */
+.b-r1{animation:br1 14s ease-in-out infinite;transform-origin:center}
+.b-r2{animation:br2 14s ease-in-out infinite;transform-origin:center}
+.b-r3{animation:br3 14s ease-in-out infinite;transform-origin:center}
+/* 外圈：慢速参考环 */
+@keyframes br1{
+  0%,100%{transform:scale(.88);opacity:.28;stroke-dashoffset:0}
+  25%{transform:scale(1.16);opacity:.55}
+  36%{transform:scale(1.16);opacity:.50}
+  67%{transform:scale(.88);opacity:.28}
+}
+/* 中圈：明显呼吸 */
+@keyframes br2{
+  0%,100%{transform:scale(.80);opacity:.45}
+  25%{transform:scale(1.26);opacity:.80}
+  36%{transform:scale(1.26);opacity:.75}
+  67%{transform:scale(.80);opacity:.45}
+}
+/* 内圈：核心，最明显 */
+@keyframes br3{
+  0%,100%{transform:scale(.68);opacity:.55;fill:rgba(240,228,200,.08)}
+  25%{transform:scale(1.36);opacity:1;fill:rgba(240,228,200,.22)}
+  36%{transform:scale(1.36);opacity:.95;fill:rgba(240,228,200,.18)}
+  67%{transform:scale(.68);opacity:.55;fill:rgba(240,228,200,.08)}
+}
+/* 光晕圈：只在吸气顶点出现 */
+.b-glow{
+  transform-origin:center;
+  animation:bGlow 14s ease-in-out infinite;
+  fill:none;
+}
+@keyframes bGlow{
+  0%,20%,40%,100%{transform:scale(.68);opacity:0}
+  25%{transform:scale(1.52);opacity:.18}
+  32%{transform:scale(1.60);opacity:0}
+}
+.b-label{
+  font-family:'Ma Shan Zheng',cursive;font-size:.9rem;
+  color:rgba(240,228,200,.82);letter-spacing:.55em;
+  text-shadow:0 0 20px rgba(240,228,200,.4),0 2px 8px rgba(0,0,0,.8);
+}
+.b-state{
+  font-size:.65rem;letter-spacing:.55em;
+  color:rgba(210,180,120,.95);
+  min-width:8em;text-align:center;
+  text-shadow:0 0 16px rgba(196,149,90,.5),0 2px 8px rgba(0,0,0,.8);
+  transition:opacity .6s ease;
+  font-family:'Noto Serif SC',serif;
+}
+/* 呼吸阶段文字的淡入淡出 */
+.b-state.fade{opacity:0}
+
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 /* ─── PLACEHOLDER CANVAS ─── */
 #offC{display:none}
@@ -350,6 +428,9 @@ textarea#ginput::placeholder{color:rgba(235,220,195,.22);font-size:.78rem;}
   <span class="vr-icon">◎</span>
   <span id="vr-txt">进入 Vision Pro</span>
 </button>
+
+<!-- 切换到真实风景版 -->
+<a href="nature.html" style="position:fixed;top:1rem;right:1.5rem;z-index:300;padding:.38rem .9rem;background:rgba(80,160,90,.1);border:.5px solid rgba(80,160,90,.3);color:rgba(180,230,190,.6);font-family:'Noto Serif SC',serif;font-size:.6rem;letter-spacing:.22em;cursor:pointer;transition:all .22s;border-radius:1px;text-decoration:none;" onmouseover="this.style.background='rgba(80,160,90,.22)';this.style.color='rgba(200,240,210,.9)'" onmouseout="this.style.background='rgba(80,160,90,.1)';this.style.color='rgba(180,230,190,.6)'">🌿 真实风景版 →</a>
 
 <!-- CUSTOM SCENE GENERATOR -->
 <div id="gen">
@@ -381,10 +462,16 @@ textarea#ginput::placeholder{color:rgba(235,220,195,.22);font-size:.78rem;}
   </div>
 
   <div class="h-breath">
-    <svg class="b-svg" width="160" height="160" viewBox="-80 -80 160 160">
-      <circle class="b-r1" r="68" fill="none" stroke="rgba(240,228,200,.45)" stroke-width="1.5"/>
-      <circle class="b-r2" r="52" fill="none" stroke="rgba(240,228,200,.65)" stroke-width="1.8"/>
-      <circle class="b-r3" r="34" fill="rgba(240,228,200,.06)" stroke="rgba(240,228,200,.9)" stroke-width="2.2"/>
+    <svg class="b-svg" width="220" height="220" viewBox="-110 -110 220 220">
+      <!-- 光晕圈：吸气顶点闪烁 -->
+      <circle class="b-glow" r="88" stroke="rgba(240,228,200,.6)" stroke-width="1"/>
+      <!-- 外圈：参考边界 -->
+      <circle class="b-r1" r="82" fill="none" stroke="rgba(240,228,200,.55)" stroke-width="1.2"
+        stroke-dasharray="8 6"/>
+      <!-- 中圈 -->
+      <circle class="b-r2" r="62" fill="none" stroke="rgba(240,228,200,.75)" stroke-width="1.8"/>
+      <!-- 内圈：核心呼吸圈 -->
+      <circle class="b-r3" r="42" fill="rgba(240,228,200,.08)" stroke="rgba(240,228,200,.95)" stroke-width="2.5"/>
     </svg>
     <div class="b-label">呼 · 吸</div>
     <div class="b-state" id="bst">缓缓吸气</div>
@@ -394,6 +481,7 @@ textarea#ginput::placeholder{color:rgba(235,220,195,.22);font-size:.78rem;}
     <div class="h-audio">
       <div class="a-btn" id="an" onclick="togAudio('n')"><div class="a-dot"></div>自然白噪音</div>
       <div class="a-btn" id="am" onclick="togAudio('m')"><div class="a-dot"></div>传统疗愈音乐</div>
+      <div class="a-btn" id="av" onclick="togVoice()"><div class="a-dot"></div>语音呼吸引导</div>
     </div>
     <div class="h-sw" id="hsw"></div>
     <div class="h-info">
@@ -1123,6 +1211,14 @@ function togAudio(k) {
   }
 }
 
+function togVoice() {
+  voiceEnabled = !voiceEnabled;
+  document.getElementById('av').classList.toggle('on', voiceEnabled);
+  if (!voiceEnabled) { speechSynth.cancel(); }
+  else { speak('语音呼吸引导已开启，请跟随引导调整呼吸'); }
+  toast(voiceEnabled ? '🎙 语音呼吸引导 已开启' : '语音呼吸引导 已关闭');
+}
+
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -1410,10 +1506,51 @@ function resetGenPanel() {
   document.getElementById('gen-inner').innerHTML = genOriginalHTML;
 }
 
+// ── 语音引导 ──
+let voiceEnabled = false;
+const speechSynth = window.speechSynthesis;
+let zhVoice = null;
+
+function initVoice() {
+  const voices = speechSynth.getVoices();
+  zhVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('CN') || v.lang.includes('TW'))
+         || voices.find(v => v.lang.includes('cmn'))
+         || voices[0];
+}
+speechSynth.onvoiceschanged = initVoice;
+initVoice();
+
+function speak(text) {
+  if (!voiceEnabled || !speechSynth) return;
+  speechSynth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  if (zhVoice) u.voice = zhVoice;
+  u.lang = 'zh-CN'; u.rate = 0.78; u.pitch = 0.92; u.volume = 0.88;
+  speechSynth.speak(u);
+}
+
+// 语音引导词（比界面文字更完整更疗愈）
+const bVoice = [
+  '缓缓地吸气，感受气息充满身体',
+  '屏住呼吸，感受当下这一刻',
+  '慢慢地呼气，释放所有紧绷',
+  '自然呼吸，让心归于宁静'
+];
+
 // 呼吸周期：3500+1500+4500+4500=14000ms，与CSS动画同步
 const bStates=['缓缓吸气','屏息片刻','缓缓呼气','自然呼吸'], bDurs=[3500,1500,4500,4500];
 let bI=0;
-(function breath(){ document.getElementById('bst').textContent=bStates[bI]; bI=(bI+1)%4; setTimeout(breath,bDurs[bI]); })();
+(function breath(){
+  const el = document.getElementById('bst');
+  el.classList.add('fade');
+  setTimeout(()=>{
+    el.textContent = bStates[bI];
+    el.classList.remove('fade');
+    speak(bVoice[bI]);
+    bI=(bI+1)%4;
+    setTimeout(breath, bDurs[bI]);
+  }, 500);
+})();
 
 /* ════════════════════════════
    BOOT
