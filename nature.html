@@ -257,19 +257,30 @@ function loadSceneTex(s){
   // 先显示程序化兜底
   const fallbackTex = buildFallbackTex(s.fallback);
   applyTex(fallbackTex, s.filter);
-  // 异步加载真实图片
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    const t = new THREE.Texture(img);
-    t.wrapS = THREE.RepeatWrapping; t.repeat.x = -1; t.offset.x = 1; t.needsUpdate = true;
-    texCache[s.id] = t; applyTex(t, s.filter);
+  // 用 img 标签加载外部图片（不设 crossOrigin，避免 CORS 问题）
+  // 但 Three.js Texture 需要同源或 CORS，所以改用 CSS 背景层叠加
+  const imgEl = document.createElement('img');
+  imgEl.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;';
+  imgEl.id = 'nature-bg-' + s.id;
+  imgEl.onload = () => {
+    // 移除旧的背景图
+    document.querySelectorAll('[id^="nature-bg-"]').forEach(el => {
+      if(el.id !== imgEl.id) el.remove();
+    });
+    // 隐藏 Three.js canvas，显示真实图片
+    canvas.style.opacity = '0';
+    canvas.style.filter = '';
+    document.body.appendChild(imgEl);
+    imgEl.style.filter = s.filter || '';
+    texCache[s.id] = 'img'; // 标记已加载
   };
-  img.onerror = () => {
-    // 加载失败就保留程序化兜底，不报错
+  imgEl.onerror = () => {
+    // 加载失败保留程序化兜底
     texCache[s.id] = fallbackTex;
+    canvas.style.opacity = '1';
+    canvas.style.filter = s.filter || '';
   };
-  img.src = s.img;
+  imgEl.src = s.img;
 }
 
 /* ════════════════════════
@@ -531,7 +542,13 @@ SCENES.forEach((s,i)=>{
   const b=document.createElement('button');b.className='sw-b'+(i===0?' on':'');b.dataset.id=s.id;b.textContent=s.name;b.onclick=()=>enter(s);hsw.appendChild(b);
 });
 
-function goSel(){document.getElementById('hud').classList.remove('on');document.getElementById('sel').classList.add('on');}
+function goSel(){
+  document.getElementById('hud').classList.remove('on');
+  document.getElementById('sel').classList.add('on');
+  // 恢复 canvas 显示
+  canvas.style.opacity = '1';
+  document.querySelectorAll('[id^="nature-bg-"]').forEach(el => el.remove());
+}
 
 function enter(s){
   const ov=document.getElementById('ov');ov.classList.add('on');
@@ -540,6 +557,9 @@ function enter(s){
     document.getElementById('hadp').textContent=s.mood;
     document.querySelectorAll('.sw-b').forEach(b=>b.classList.toggle('on',b.dataset.id===s.id));
     ry=0;rx=0;vy=0;vx=0;autoRot=0.0003;
+    // 移除旧背景图，恢复 canvas
+    document.querySelectorAll('[id^="nature-bg-"]').forEach(el=>el.remove());
+    canvas.style.opacity='1';
     loadSceneTex(s);
     document.getElementById('sel').classList.remove('on');
     document.getElementById('hud').classList.add('on');
