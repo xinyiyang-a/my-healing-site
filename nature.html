@@ -160,7 +160,7 @@ const SCENES = [
     desc:'晨雾弥漫的原始山林，阳光穿透林间',
     mood:'焦虑 · 烦躁 · 压力过载',
     filter:'brightness(1.15) contrast(1.05)',
-    img:'n_forest.jpg',   // 上传到 GitHub 的文件名
+    img:'https://images.pexels.com/photos/2431375/pexels-photo-2431375.jpeg?auto=compress&cs=tinysrgb&w=2048',
     fallback: drawForest
   },
   {
@@ -168,7 +168,7 @@ const SCENES = [
     desc:'皑皑雪山、云雾缭绕、天地辽阔',
     mood:'精神内耗 · 失眠 · 注意力涣散',
     filter:'brightness(1.2) contrast(1.0)',
-    img:'n_mountain.jpg',
+    img:'https://images.pexels.com/photos/414124/pexels-photo-414124.jpeg?auto=compress&cs=tinysrgb&w=2048',
     fallback: drawMountain
   },
   {
@@ -176,7 +176,7 @@ const SCENES = [
     desc:'清澈溪流、巨石苔藓、林间光斑',
     mood:'情绪低落 · 紧绷 · 疲惫',
     filter:'brightness(1.1) contrast(1.05) saturate(1.1)',
-    img:'n_stream.jpg',
+    img:'https://images.pexels.com/photos/20759660/pexels-photo-20759660.jpeg?auto=compress&cs=tinysrgb&w=2048',
     fallback: drawStream
   },
   {
@@ -184,7 +184,7 @@ const SCENES = [
     desc:'静如明镜的湖面、远山倒影、天水一色',
     mood:'嘈杂环境 · 抑郁 · 思绪杂乱',
     filter:'brightness(1.15) contrast(1.02) saturate(1.05)',
-    img:'n_lake.jpg',
+    img:'https://images.pexels.com/photos/518485/pexels-photo-518485.jpeg?auto=compress&cs=tinysrgb&w=2048',
     fallback: drawLake
   },
   {
@@ -192,7 +192,7 @@ const SCENES = [
     desc:'漫山花海、姹紫嫣红、春日暖阳',
     mood:'抑郁 · 情绪低落 · 缺乏活力',
     filter:'brightness(1.15) saturate(1.15)',
-    img:'n_flower.jpg',
+    img:'https://images.pexels.com/photos/5000295/pexels-photo-5000295.jpeg?auto=compress&cs=tinysrgb&w=2048',
     fallback: drawFlower
   },
   {
@@ -200,7 +200,7 @@ const SCENES = [
     desc:'翠竹成林、阳光斑驳、清风徐来',
     mood:'社交压力 · 心情压抑',
     filter:'brightness(1.1) saturate(1.1)',
-    img:'n_bamboo.jpg',
+    img:'https://images.pexels.com/photos/27853100/pexels-photo-27853100.jpeg?auto=compress&cs=tinysrgb&w=2048',
     fallback: drawBamboo
   },
 ];
@@ -254,17 +254,22 @@ const texCache={};
 function applyTex(tex,filter){mat.map=tex;mat.needsUpdate=true;canvas.style.filter=filter||'';}
 function loadSceneTex(s){
   if(texCache[s.id]){applyTex(texCache[s.id],s.filter);return;}
-  fetch(s.img).then(r=>{if(!r.ok)throw new Error();return r.blob();})
-    .then(blob=>{
-      const url=URL.createObjectURL(blob);
-      const img=new Image();
-      img.onload=()=>{const t=new THREE.Texture(img);t.wrapS=THREE.RepeatWrapping;t.repeat.x=-1;t.offset.x=1;t.needsUpdate=true;texCache[s.id]=t;applyTex(t,s.filter);};
-      img.src=url;
-    })
-    .catch(()=>{
-      // 找不到图片时用程序化兜底
-      const t=buildFallbackTex(s.fallback);texCache[s.id]=t;applyTex(t,s.filter);
-    });
+  // 先显示程序化兜底
+  const fallbackTex = buildFallbackTex(s.fallback);
+  applyTex(fallbackTex, s.filter);
+  // 异步加载真实图片
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const t = new THREE.Texture(img);
+    t.wrapS = THREE.RepeatWrapping; t.repeat.x = -1; t.offset.x = 1; t.needsUpdate = true;
+    texCache[s.id] = t; applyTex(t, s.filter);
+  };
+  img.onerror = () => {
+    // 加载失败就保留程序化兜底，不报错
+    texCache[s.id] = fallbackTex;
+  };
+  img.src = s.img;
 }
 
 /* ════════════════════════
