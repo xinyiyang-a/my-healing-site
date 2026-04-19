@@ -345,6 +345,12 @@ textarea#ginput::placeholder{color:rgba(235,220,195,.22);font-size:.78rem;}
 <canvas id="glc"></canvas>
 <canvas id="offC" width="2048" height="1024"></canvas>
 
+<!-- VR 进入按钮 -->
+<button id="vr-btn" onclick="toggleVR()">
+  <span class="vr-icon">◎</span>
+  <span id="vr-txt">进入 Vision Pro</span>
+</button>
+
 <!-- CUSTOM SCENE GENERATOR -->
 <div id="gen">
   <p class="gen-title">创造你的水墨世界</p>
@@ -438,6 +444,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.NoToneMapping;
+renderer.xr.enabled = true; // 开启 WebXR
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -463,10 +470,10 @@ topCap.rotation.x = -Math.PI / 2; topCap.position.y = 90; scene.add(topCap);
 const botCap = new THREE.Mesh(new THREE.CircleGeometry(500, 64), capMat);
 botCap.rotation.x = Math.PI / 2; botCap.position.y = -90; scene.add(botCap);
 
-/* ── ORBIT CONTROLS ── */
+/* ── ORBIT CONTROLS (普通浏览器用) ── */
 let isDrag = false, px = 0, py = 0, vy = 0, vx = 0, ry = 0, rx = 0;
 const RS = 0.0028, DAMP = 0.90, MRX = Math.PI * 0.38;
-let autoRotSpeed = 0.0004; // slow auto-pan
+let autoRotSpeed = 0.0004;
 
 canvas.addEventListener('mousedown', e => { isDrag=true; px=e.clientX; py=e.clientY; autoRotSpeed=0; });
 window.addEventListener('mouseup', () => { isDrag=false; });
@@ -488,6 +495,8 @@ canvas.addEventListener('wheel', e => {
 }, {passive:true});
 
 function updateCam() {
+  // VR 模式下头显自动控制视角，不需要手动更新
+  if (renderer.xr.isPresenting) return;
   vy *= DAMP; vx *= DAMP;
   ry += vy + autoRotSpeed;
   rx += vx;
@@ -497,14 +506,13 @@ function updateCam() {
   camera.quaternion.copy(qY).multiply(qX);
 }
 
-// Render loop
+// Render loop — 用 setAnimationLoop 支持 WebXR
 const clock = new THREE.Clock();
-(function loop() {
-  requestAnimationFrame(loop);
+renderer.setAnimationLoop(() => {
   clock.getDelta();
   updateCam();
   renderer.render(scene, camera);
-})();
+});
 
 /* ════════════════════════════
    TEXTURE LOADING
@@ -699,19 +707,6 @@ let noiseNodes = [], musicNodes = [], noiseGain = null, musicGain = null;
 let musicTimer = null;
 const aS = { n: false, m: false };
 let curSceneId = 'fuchun';
-// 这个函数必须存在，用于把 mp3 转换成浏览器能理解的 Buffer
-async function fetchAudioBuffer(ac, url) {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    const arrayBuffer = await response.arrayBuffer();
-    const audioBuffer = await ac.decodeAudioData(arrayBuffer);
-    return audioBuffer;
-  } catch (e) {
-    console.error("音频解码失败:", url, e);
-    throw e;
-  }
-}
 
 // 各场景音效配置
 const AUDIO_CFG = {
@@ -732,36 +727,36 @@ const AUDIO_CFG = {
       return [src, lp, bp];
     },
     // 音乐：古琴风，悠长单音，五声音阶
-    music: async (ac, out, vol) => {
-  const audioUrl = 'assets/guqin_fuchun.mp3'; 
-  const nodes = [];
-
-  try {
-    const buffer = await fetchAudioBuffer(ac, audioUrl);
-    
-    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
-    // 这里假设 curSceneId 是全局变量
-    if (typeof curSceneId !== 'undefined' && curSceneId !== 'fuchun') return [];
-
-    const src = ac.createBufferSource();
-    src.buffer = buffer;
-    src.loop = false; 
-
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0, ac.currentTime);
-    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
-
-    src.connect(g);
-    g.connect(out);
-    src.start(0);
-
-    nodes.push(src, g);
-  } catch (e) {
-    console.error("音频加载失败:", e);
-  }
+    music: (ac, out, vol) => {
+      // C大调五声：C E G A C'
+      const notes = [261.63, 329.63, 392.00, 440.00, 523.25];
+      const melody = [0,2,1,3,2,4,2,1,0,3,2,1,4,3,2,0];
+      const durs =   [3.5,2.5,3,2,4,3,2.5,3,4,2,3,2.5,4,3,3.5,4];
+      let t = ac.currentTime + 0.3;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const freq = notes[ni];
+        const dur = durs[i];
+        // 主音（古琴拨弦感：快攻慢衰）
+        const osc = ac.createOscillator(); osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        // 轻微颤音
+        const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4.5;
+        const lfoG = ac.createGain(); lfoG.gain.value = 1.5;
+        lfo.connect(lfoG); lfoG.connect(osc.frequency);
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.22, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(vol * 0.08, t + dur * 0.6);
+        g.gain.linearRampToValueAtTime(0.0001, t + dur * 0.98);
+        osc.connect(g); g.connect(out);
+        osc.start(t); osc.stop(t + dur); lfo.start(t); lfo.stop(t + dur);
+        nodes.push(osc, lfo, lfoG, g);
+        t += dur * 0.72;
+      });
       return nodes;
     },
-    musicDur: 120000
+    musicDur: 55000
   },
 
   yunshan: {
@@ -778,36 +773,33 @@ const AUDIO_CFG = {
       src.connect(hp); hp.connect(lp); lp.connect(out); src.start();
       return [src, hp, lp];
     },
-    music: async (ac, out, vol) => {
-  const audioUrl = 'assets/yunshan.mp3'; 
-  const nodes = [];
-
-  try {
-    const buffer = await fetchAudioBuffer(ac, audioUrl);
-    
-    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
-    // 这里假设 curSceneId 是全局变量
-    if (typeof curSceneId !== 'undefined' && curSceneId !== 'yunshan') return [];
-
-    const src = ac.createBufferSource();
-    src.buffer = buffer;
-    src.loop = false; 
-
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0, ac.currentTime);
-    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
-
-    src.connect(g);
-    g.connect(out);
-    src.start(0);
-
-    nodes.push(src, g);
-  } catch (e) {
-    console.error("音频加载失败:", e);
-  }
+    music: (ac, out, vol) => {
+      // 磬音：单音长延音，G调
+      const bowls = [392.00, 523.25, 293.66, 440.00, 349.23, 523.25, 392.00];
+      const waits = [0, 5, 9, 14, 18, 23, 28];
+      const nodes = [];
+      const t0 = ac.currentTime + 0.5;
+      bowls.forEach((freq, i) => {
+        const osc = ac.createOscillator(); osc.type = 'sine';
+        osc.frequency.value = freq;
+        // 泛音
+        const osc2 = ac.createOscillator(); osc2.type = 'sine';
+        osc2.frequency.value = freq * 2.756;
+        const g = ac.createGain(); g.gain.setValueAtTime(0, t0 + waits[i]);
+        g.gain.linearRampToValueAtTime(vol * 0.28, t0 + waits[i] + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + waits[i] + 4.5);
+        const g2 = ac.createGain(); g2.gain.setValueAtTime(0, t0 + waits[i]);
+        g2.gain.linearRampToValueAtTime(vol * 0.06, t0 + waits[i] + 0.01);
+        g2.gain.exponentialRampToValueAtTime(0.0001, t0 + waits[i] + 2.5);
+        osc.connect(g); g.connect(out);
+        osc2.connect(g2); g2.connect(out);
+        osc.start(t0 + waits[i]); osc.stop(t0 + waits[i] + 5);
+        osc2.start(t0 + waits[i]); osc2.stop(t0 + waits[i] + 3);
+        nodes.push(osc, osc2, g, g2);
+      });
       return nodes;
     },
-    musicDur: 900000
+    musicDur: 34000
   },
 
   xishan: {
@@ -835,36 +827,34 @@ const AUDIO_CFG = {
       lfo2.connect(lfoG2); lfoG2.connect(bG.gain); lfo2.start();
       return [src, bp, bird, bG, lfo2, lfoG2];
     },
-    music: async (ac, out, vol) => {
-  const audioUrl = 'assets/xishan.mp3'; 
-  const nodes = [];
-
-  try {
-    const buffer = await fetchAudioBuffer(ac, audioUrl);
-    
-    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
-    // 这里假设 curSceneId 是全局变量
-    if (typeof curSceneId !== 'undefined' && curSceneId !== 'xishan') return [];
-
-    const src = ac.createBufferSource();
-    src.buffer = buffer;
-    src.loop = false; 
-
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0, ac.currentTime);
-    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
-
-    src.connect(g);
-    g.connect(out);
-    src.start(0);
-
-    nodes.push(src, g);
-  } catch (e) {
-    console.error("音频加载失败:", e);
-  }
+    music: (ac, out, vol) => {
+      // 竹笛风格：G大调，轻快跳音
+      const scale = [392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 739.99, 783.99];
+      const melody = [0,2,4,3,2,4,5,4,2,0,1,2,4,6,5,4,2,4,3,2,0];
+      const durs =   [0.8,0.6,1.2,0.8,0.6,0.8,1.0,0.8,0.6,1.2,0.6,0.8,1.0,1.2,0.8,1.0,0.6,0.8,0.6,1.0,1.8];
+      let t = ac.currentTime + 0.2;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const osc = ac.createOscillator(); osc.type = 'sine';
+        osc.frequency.value = scale[ni];
+        const osc2 = ac.createOscillator(); osc2.type = 'triangle';
+        osc2.frequency.value = scale[ni] * 0.5;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.2, t + 0.04);
+        g.gain.linearRampToValueAtTime(vol * 0.12, t + durs[i] * 0.6);
+        g.gain.linearRampToValueAtTime(0.0001, t + durs[i] * 0.95);
+        const g2 = ac.createGain(); g2.gain.value = vol * 0.05;
+        osc.connect(g); g.connect(out);
+        osc2.connect(g2); g2.connect(out);
+        osc.start(t); osc.stop(t + durs[i]);
+        osc2.start(t); osc2.stop(t + durs[i]);
+        nodes.push(osc, osc2, g, g2);
+        t += durs[i] * 0.88;
+      });
       return nodes;
     },
-    musicDur: 900000
+    musicDur: 28000
   },
 
   tingyu: {
@@ -893,36 +883,29 @@ const AUDIO_CFG = {
       src.start(); drip.start();
       return [src, hp, lp, drip, lp2];
     },
-    music: async (ac, out, vol) => {
-  const audioUrl = 'assets/tingyu.mp3'; 
-  const nodes = [];
-
-  try {
-    const buffer = await fetchAudioBuffer(ac, audioUrl);
-    
-    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
-    // 这里假设 curSceneId 是全局变量
-    if (typeof curSceneId !== 'undefined' && curSceneId !== 'tingyu') return [];
-
-    const src = ac.createBufferSource();
-    src.buffer = buffer;
-    src.loop = false; 
-
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0, ac.currentTime);
-    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
-
-    src.connect(g);
-    g.connect(out);
-    src.start(0);
-
-    nodes.push(src, g);
-  } catch (e) {
-    console.error("音频加载失败:", e);
-  }
+    music: (ac, out, vol) => {
+      // 琵琶风格：快拨弦，F调
+      const notes = [349.23, 392.00, 440.00, 466.16, 523.25, 587.33, 622.25, 698.46];
+      const melody = [0,2,1,0,3,2,4,3,2,4,5,4,6,5,4,2,3,4,5,7,5,4,2,0];
+      const durs =   [0.3,0.3,0.3,0.6,0.3,0.3,0.6,0.3,0.3,0.3,0.6,0.3,0.3,0.3,0.6,0.3,0.3,0.5,0.3,0.6,0.3,0.3,0.5,1.0];
+      let t = ac.currentTime + 0.2;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const osc = ac.createOscillator(); osc.type = 'sawtooth';
+        osc.frequency.value = notes[ni];
+        const filt = ac.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 2000;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.15, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + durs[i] * 0.85);
+        osc.connect(filt); filt.connect(g); g.connect(out);
+        osc.start(t); osc.stop(t + durs[i]);
+        nodes.push(osc, filt, g);
+        t += durs[i];
+      });
       return nodes;
     },
-    musicDur: 900000
+    musicDur: 16000
   },
 
   bimo: {
@@ -943,35 +926,37 @@ const AUDIO_CFG = {
       src.connect(lp); lp.connect(out); src.start();
       return [src, lp];
     },
-    music: async (ac, out, vol) => {
-  const audioUrl = 'assets/bimo.mp3'; 
-  const nodes = [];
-
-  try {
-    const buffer = await fetchAudioBuffer(ac, audioUrl);
-    
-    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
-    // 这里假设 curSceneId 是全局变量
-    if (typeof curSceneId !== 'undefined' && curSceneId !== 'bimo') return [];
-
-    const src = ac.createBufferSource();
-    src.buffer = buffer;
-    src.loop = false; 
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0, ac.currentTime);
-    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
-
-    src.connect(g);
-    g.connect(out);
-    src.start(0);
-
-    nodes.push(src, g);
-  } catch (e) {
-    console.error("音频加载失败:", e);
-  }
+    music: (ac, out, vol) => {
+      // 古筝：C调，平静绵长，带滑音
+      const base = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25];
+      const melody = [4,5,6,8,7,6,5,4,2,0,1,2,4,5,4,2,4,6,8,9,8,6,5,4,2,4,5,4,2,0];
+      const durs =   [1.2,0.8,1.0,1.5,1.0,0.8,1.0,1.2,0.8,1.5,0.8,1.0,1.2,1.0,0.8,1.2,1.0,1.2,1.5,1.8,1.2,1.0,1.2,0.8,1.5,1.0,0.8,1.0,1.2,2.0];
+      let t = ac.currentTime + 0.4;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const freq = base[ni];
+        const osc = ac.createOscillator(); osc.type = 'triangle';
+        // 滑音效果
+        osc.frequency.setValueAtTime(freq * 1.02, t);
+        osc.frequency.linearRampToValueAtTime(freq, t + 0.12);
+        const osc2 = ac.createOscillator(); osc2.type = 'sine';
+        osc2.frequency.value = freq * 2;
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.18, t + 0.06);
+        g.gain.exponentialRampToValueAtTime(vol * 0.06, t + durs[i] * 0.7);
+        g.gain.linearRampToValueAtTime(0.0001, t + durs[i] * 0.96);
+        const g2 = ac.createGain(); g2.gain.value = vol * 0.04;
+        osc.connect(g); g.connect(out);
+        osc2.connect(g2); g2.connect(out);
+        osc.start(t); osc.stop(t + durs[i]);
+        osc2.start(t); osc2.stop(t + durs[i]);
+        nodes.push(osc, osc2, g, g2);
+        t += durs[i] * 0.78;
+      });
       return nodes;
     },
-    musicDur: 900000
+    musicDur: 52000
   },
 
   lanting: {
@@ -993,36 +978,44 @@ const AUDIO_CFG = {
       src.connect(bp); bp.connect(out); src.start();
       return [src, bp];
     },
-    music: async (ac, out, vol) => {
-  const audioUrl = 'assets/lanting.mp3'; 
-  const nodes = [];
-
-  try {
-    const buffer = await fetchAudioBuffer(ac, audioUrl);
-    
-    // 【关键检查】：如果开始播放时，场景已经不是 fuchun 了，就直接退出
-    // 这里假设 curSceneId 是全局变量
-    if (typeof curSceneId !== 'undefined' && curSceneId !== 'lanting') return [];
-
-    const src = ac.createBufferSource();
-    src.buffer = buffer;
-    src.loop = false; 
-
-    const g = ac.createGain();
-    g.gain.setValueAtTime(0, ac.currentTime);
-    g.gain.linearRampToValueAtTime(vol * 0.8, ac.currentTime + 1.5); 
-
-    src.connect(g);
-    g.connect(out);
-    src.start(0);
-
-    nodes.push(src, g);
-  } catch (e) {
-    console.error("音频加载失败:", e);
-  }
+    music: (ac, out, vol) => {
+      // 洞箫：D调，低沉悠扬，气息感
+      const scale = [293.66, 329.63, 369.99, 392.00, 440.00, 493.88, 554.37, 587.33];
+      const melody = [0,2,4,3,2,4,5,4,3,5,6,5,4,3,2,4,3,2,0,2,4,5,7,6,5,4,2,0];
+      const durs =   [1.5,1.0,1.8,1.2,1.0,1.5,1.8,1.2,1.0,1.5,2.0,1.5,1.2,1.0,1.5,1.2,1.0,1.5,1.8,1.2,1.5,2.0,2.2,1.5,1.2,1.5,1.8,2.5];
+      let t = ac.currentTime + 0.5;
+      const nodes = [];
+      melody.forEach((ni, i) => {
+        const freq = scale[ni];
+        const osc = ac.createOscillator(); osc.type = 'sine';
+        osc.frequency.value = freq;
+        // 气息颤动
+        const lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5.2;
+        const lG = ac.createGain(); lG.gain.value = freq * 0.012;
+        lfo.connect(lG); lG.connect(osc.frequency);
+        // 气声（噪音混合）
+        const nBuf = ac.createBuffer(1, ac.sampleRate * 0.1, ac.sampleRate);
+        const nd = nBuf.getChannelData(0);
+        for(let j=0;j<nd.length;j++) nd[j]=Math.random()*2-1;
+        const nSrc = ac.createBufferSource(); nSrc.buffer=nBuf; nSrc.loop=true;
+        const nFilt = ac.createBiquadFilter(); nFilt.type='bandpass'; nFilt.frequency.value=freq*1.5; nFilt.Q.value=8;
+        const nG = ac.createGain(); nG.gain.value = vol * 0.018;
+        nSrc.connect(nFilt); nFilt.connect(nG); nG.connect(out);
+        const g = ac.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol * 0.16, t + 0.15);
+        g.gain.linearRampToValueAtTime(vol * 0.12, t + durs[i] * 0.75);
+        g.gain.linearRampToValueAtTime(0.0001, t + durs[i] * 0.97);
+        osc.connect(g); g.connect(out);
+        osc.start(t); osc.stop(t + durs[i]);
+        lfo.start(t); lfo.stop(t + durs[i]);
+        nSrc.start(t); nSrc.stop(t + durs[i]);
+        nodes.push(osc, lfo, lG, g, nSrc, nFilt, nG);
+        t += durs[i] * 0.8;
+      });
       return nodes;
     },
-    musicDur: 900000
+    musicDur: 62000
   }
 };
 
@@ -1065,35 +1058,19 @@ function startNoise(id) {
   g.gain.linearRampToValueAtTime(0.55, aC.currentTime + 0.8);
 }
 
-async function startMusic(id) { // 必须加 async
+function startMusic(id) {
   if (!aC || !aS.m) return;
   const cfg = AUDIO_CFG[id];
   if (!cfg) return;
-  
-  clearTimeout(musicTimer); // 启动前清除之前的定时器
-
-  const g = aC.createGain(); 
-  g.gain.value = 0;
+  const g = aC.createGain(); g.gain.value = 0;
+  // 音乐走混响
   if (aC._reverb) g.connect(aC._reverb);
   g.connect(masterGain);
   musicGain = g;
-
-  // 重要：这里必须加 await，无论 cfg.music 是否是 async 函数，await 都是安全的
-  const nodes = await cfg.music(aC, g, 1.0);
-  
-  // 防御检查：防止加载音频期间用户切换了场景
-  if (curSceneId !== id || !aS.m) {
-    nodes.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} });
-    return;
-  }
-
+  const nodes = cfg.music(aC, g, 1.0);
   musicNodes = nodes;
   g.gain.linearRampToValueAtTime(0.72, aC.currentTime + 1.0);
-  
-  // 递归循环
-  musicTimer = setTimeout(() => { 
-    if (aS.m && curSceneId === id) startMusic(id); 
-  }, cfg.musicDur);
+  musicTimer = setTimeout(() => { if (aS.m) startMusic(curSceneId); }, cfg.musicDur);
 }
 
 function switchSceneAudio(id) {
@@ -1153,8 +1130,74 @@ function toast(msg) {
 }
 
 /* ════════════════════════════
-   PAGE FLOW
+   WEBXR — Vision Pro / VR 头显支持
 ════════════════════════════ */
+const vrBtn = document.getElementById('vr-btn');
+const vrTxt = document.getElementById('vr-txt');
+let xrSession = null;
+
+// 检测设备是否支持 WebXR
+async function checkXRSupport() {
+  if (!navigator.xr) return;
+  // immersive-vr: Quest/Pico; immersive-ar: Vision Pro 空间计算
+  const modes = ['immersive-vr', 'immersive-ar'];
+  for (const mode of modes) {
+    try {
+      const supported = await navigator.xr.isSessionSupported(mode);
+      if (supported) {
+        vrBtn.style.display = 'flex';
+        vrBtn.dataset.mode = mode;
+        // Vision Pro 用 AR 模式显示不同文字
+        vrTxt.textContent = mode === 'immersive-ar' ? '进入 Vision Pro' : '进入 VR 模式';
+        break;
+      }
+    } catch(e) {}
+  }
+}
+checkXRSupport();
+
+async function toggleVR() {
+  if (xrSession) {
+    // 已在 VR 中 → 退出
+    await xrSession.end();
+    return;
+  }
+  const mode = vrBtn.dataset.mode || 'immersive-vr';
+  try {
+    // 请求 XR 会话
+    const sessionInit = {
+      optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking'],
+    };
+    // Vision Pro 的 AR 模式加上 unbounded 空间
+    if (mode === 'immersive-ar') {
+      sessionInit.optionalFeatures.push('unbounded');
+    }
+    xrSession = await navigator.xr.requestSession(mode, sessionInit);
+    renderer.xr.setSession(xrSession);
+
+    vrBtn.classList.add('presenting');
+    vrTxt.textContent = '退出沉浸模式';
+    // 隐藏 HUD，让画面更纯净
+    document.getElementById('hud').style.opacity = '0';
+
+    xrSession.addEventListener('end', () => {
+      xrSession = null;
+      vrBtn.classList.remove('presenting');
+      vrTxt.textContent = mode === 'immersive-ar' ? '进入 Vision Pro' : '进入 VR 模式';
+      document.getElementById('hud').style.opacity = '1';
+    });
+  } catch(err) {
+    console.error('XR session failed:', err);
+    toast('设备不支持沉浸模式，请在 Vision Pro 中打开');
+  }
+}
+
+// 在场景里才显示 VR 按钮
+function showVRBtn(show) {
+  if (vrBtn.style.display !== 'none' || show) {
+    vrBtn.style.display = show ? 'flex' : 'none';
+  }
+}
 const nums=['一','二','三','四','五','六'];
 const sgrid=document.getElementById('sgrid');
 const hsw=document.getElementById('hsw');
@@ -1182,6 +1225,8 @@ SCENES.forEach((s,i)=>{
 function goSel(){
   document.getElementById('hud').classList.remove('on');
   document.getElementById('sel').classList.add('on');
+  // 返回选择页时隐藏 VR 按钮
+  if (vrBtn) vrBtn.style.display = 'none';
   // 如果是自定义场景，恢复 Three.js canvas
   const customBg = document.getElementById('customBg');
   if (customBg) { customBg.remove(); canvas.style.display = 'block'; }
@@ -1205,6 +1250,8 @@ function enter(id){
     document.getElementById('sel').classList.remove('on');
     document.getElementById('hud').classList.add('on');
     ov.classList.remove('on');
+    // 进入场景后显示 VR 按钮（如果设备支持）
+    checkXRSupport();
   },480);
 }
 
