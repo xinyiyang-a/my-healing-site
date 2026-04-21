@@ -1147,35 +1147,58 @@ function startNoise(id) {
 }
 
 function startMusic(id) {
-  if (!aC || !aS.m) return;
-  const cfg = AUDIO_CFG[id];
-  if (!cfg) return;
-  const g = aC.createGain(); g.gain.value = 0;
-  // 音乐走混响
-  if (aC._reverb) g.connect(aC._reverb);
-  g.connect(masterGain);
-  musicGain = g;
-  const nodes = cfg.music(aC, g, 1.0);
-  musicNodes = nodes;
-  g.gain.linearRampToValueAtTime(0.72, aC.currentTime + 1.0);
-  musicTimer = setTimeout(() => { if (aS.m) startMusic(curSceneId); }, cfg.musicDur);
+  if (!aS.m) return;
+  // 停止当前音乐
+  if (window._musicAudio) {
+    window._musicAudio.pause();
+    window._musicAudio.currentTime = 0;
+  }
+  // 各场景对应的 mp3 文件
+  const musicMap = {
+    fuchun:  'assets/guqin_fuchun.mp3',
+    yunshan: 'assets/yunshan.mp3',
+    xishan:  'assets/xishan.mp3',
+    tingyu:  'assets/tingyu.mp3',
+    bimo:    'assets/bimo.mp3',
+    lanting: 'assets/lanting.mp3',
+  };
+  const src = musicMap[id];
+  if (!src) return;
+  const audio = new Audio(src);
+  audio.loop = true;
+  audio.volume = 0;
+  audio.play().catch(e => console.log('音频播放失败:', e));
+  // 淡入
+  let vol = 0;
+  const fadeIn = setInterval(() => {
+    vol = Math.min(vol + 0.05, 0.7);
+    audio.volume = vol;
+    if (vol >= 0.7) clearInterval(fadeIn);
+  }, 80);
+  window._musicAudio = audio;
 }
 
 function switchSceneAudio(id) {
   curSceneId = id;
   if (!aC) return;
-  // 淡出当前
+  // 淡出白噪音
   if (noiseGain) { noiseGain.gain.linearRampToValueAtTime(0, aC.currentTime + 0.8); }
-  if (musicGain) { musicGain.gain.linearRampToValueAtTime(0, aC.currentTime + 0.8); }
   clearTimeout(musicTimer);
   const old = [...noiseNodes, ...musicNodes];
   noiseNodes = []; musicNodes = [];
   setTimeout(() => { old.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} }); }, 1000);
+  // 淡出当前音乐
+  if (window._musicAudio) {
+    const audio = window._musicAudio;
+    const fadeOut = setInterval(() => {
+      audio.volume = Math.max(audio.volume - 0.05, 0);
+      if (audio.volume <= 0) { clearInterval(fadeOut); audio.pause(); }
+    }, 80);
+  }
   // 淡入新场景
   setTimeout(() => {
     if (aS.n) startNoise(id);
     if (aS.m) startMusic(id);
-    // 更新按钮文字
     updateAudioLabels(id);
   }, 900);
 }
@@ -1203,9 +1226,14 @@ function togAudio(k) {
   } else {
     if (aS.m) { startMusic(curSceneId); }
     else {
-      clearTimeout(musicTimer);
-      if (musicGain) musicGain.gain.linearRampToValueAtTime(0, aC.currentTime + 0.6);
-      setTimeout(() => { musicNodes.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch(e){} }); musicNodes = []; }, 700);
+      // 淡出并停止 mp3
+      if (window._musicAudio) {
+        const audio = window._musicAudio;
+        const fadeOut = setInterval(() => {
+          audio.volume = Math.max(audio.volume - 0.05, 0);
+          if (audio.volume <= 0) { clearInterval(fadeOut); audio.pause(); }
+        }, 80);
+      }
     }
     toast(aS.m ? `🎵 ${AUDIO_CFG[curSceneId]?.musicName || '传统疗愈音乐'} 已开启` : '传统疗愈音乐 已关闭');
   }
