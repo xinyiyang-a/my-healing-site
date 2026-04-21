@@ -262,8 +262,7 @@ function loadSceneTex(s){
 
   const imgEl = document.createElement('img');
   imgEl.id = 'nature-bg-' + s.id;
-  // 300%宽 220%高，默认显示图片上半部分（仰视感）
-  imgEl.style.cssText = 'position:fixed;top:0;left:0;width:300%;height:220%;object-fit:cover;object-position:center top;z-index:0;pointer-events:none;transform:translate(-33.33%,-8%);will-change:transform;cursor:grab;';
+  imgEl.style.cssText = 'position:fixed;top:0;left:0;width:200%;height:100%;object-fit:cover;object-position:center center;z-index:0;pointer-events:none;transform:translateX(-25%);will-change:transform;cursor:grab;';
 
   imgEl.onload = () => {
     document.querySelectorAll('[id^="nature-bg-"]').forEach(el => {
@@ -288,12 +287,12 @@ function showNatureBg(s) {
   texCache[s.id + '_r'] = null;
 }
 
-let imgDragX = -33.33, imgDragY = -8;
+let imgDragX = -25, imgDragY = 0;
 let imgDragStartX = 0, imgDragStartY = 0, imgDragging = false;
 
 function bindImgDrag(imgEl) {
-  imgDragX = -33.33;
-  imgDragY = -8; // 默认偏上，显示天空部分（仰视感）
+  imgDragX = -25;
+  imgDragY = 0;
 
   const getXY = e => ({
     x: e.clientX ?? e.touches?.[0]?.clientX ?? 0,
@@ -302,9 +301,8 @@ function bindImgDrag(imgEl) {
 
   const onDown = e => {
     imgDragging = true;
-    const {x, y} = getXY(e);
+    const {x} = getXY(e);
     imgDragStartX = x - imgDragX * window.innerWidth / 100;
-    imgDragStartY = y - imgDragY * window.innerHeight / 100;
     imgEl.style.cursor = 'grabbing';
   };
   const onUp = () => {
@@ -313,15 +311,11 @@ function bindImgDrag(imgEl) {
   };
   const onMove = e => {
     if (!imgDragging) return;
-    const {x, y} = getXY(e);
-    imgDragX = Math.max(-66.66, Math.min(0,
+    const {x} = getXY(e);
+    imgDragX = Math.max(-50, Math.min(0,
       (x - imgDragStartX) * 100 / window.innerWidth
     ));
-    // 纵向范围：-55% ~ 0%（偏上方，仰视为主）
-    imgDragY = Math.max(-55, Math.min(0,
-      (y - imgDragStartY) * 100 / window.innerHeight
-    ));
-    imgEl.style.transform = `translate(${imgDragX}%, ${imgDragY}%)`;
+    imgEl.style.transform = `translateX(${imgDragX}%)`;
   };
 
   imgEl.addEventListener('mousedown', onDown);
@@ -335,11 +329,11 @@ function bindImgDrag(imgEl) {
   let autoPanX = imgDragX, autoPanDir = 1;
   const autoPan = () => {
     if (imgDragging || !document.body.contains(imgEl)) return;
-    autoPanX += autoPanDir * 0.005;
-    if (autoPanX >= -5)  autoPanDir = -1;
-    if (autoPanX <= -61) autoPanDir = 1;
+    autoPanX += autoPanDir * 0.006;
+    if (autoPanX >= 0)   autoPanDir = -1;
+    if (autoPanX <= -50) autoPanDir = 1;
     imgDragX = autoPanX;
-    imgEl.style.transform = `translate(${autoPanX}%, ${imgDragY}%)`;
+    imgEl.style.transform = `translateX(${autoPanX}%)`;
     requestAnimationFrame(autoPan);
   };
   requestAnimationFrame(autoPan);
