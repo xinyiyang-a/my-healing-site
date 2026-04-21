@@ -536,7 +536,7 @@ renderer.xr.enabled = true; // 开启 WebXR
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 0, 0.01);
+camera.position.set(0, -30, 0.01); // 相机降低，模拟坐在场景里的视角
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -559,8 +559,8 @@ const botCap = new THREE.Mesh(new THREE.CircleGeometry(500, 64), capMat);
 botCap.rotation.x = Math.PI / 2; botCap.position.y = -90; scene.add(botCap);
 
 /* ── ORBIT CONTROLS (普通浏览器用) ── */
-let isDrag = false, px = 0, py = 0, vy = 0, vx = 0, ry = 0, rx = 0;
-const RS = 0.0028, DAMP = 0.90, MRX = Math.PI * 0.38;
+let isDrag = false, px = 0, py = 0, vy = 0, vx = 0, ry = 0, rx = 0.18; // rx初始值让视角略微向下
+const RS = 0.0028, DAMP = 0.90, MRX = Math.PI * 0.55; // 扩大垂直范围，可以更大幅度抬头低头
 let autoRotSpeed = 0.0004;
 
 canvas.addEventListener('mousedown', e => { isDrag=true; px=e.clientX; py=e.clientY; autoRotSpeed=0; });
@@ -1366,7 +1366,7 @@ function enter(id){
     document.querySelectorAll('.sw-btn').forEach(b=>b.classList.toggle('on',b.dataset.id===id));
     // Apply per-scene brightness filter
     canvas.style.filter = s.filter || 'brightness(1.8)';
-    ry=0; rx=0; vy=0; vx=0; autoRotSpeed=0.0004;
+    ry=0; rx=0.18; vy=0; vx=0; autoRotSpeed=0.0004;
     loadSceneTex(id);
     // Switch audio to new scene
     switchSceneAudio(id);
