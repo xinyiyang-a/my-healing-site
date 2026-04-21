@@ -253,34 +253,97 @@ const loader=new THREE.TextureLoader();
 const texCache={};
 function applyTex(tex,filter){mat.map=tex;mat.needsUpdate=true;canvas.style.filter=filter||'';}
 function loadSceneTex(s){
-  if(texCache[s.id]){applyTex(texCache[s.id],s.filter);return;}
-  // 先显示程序化兜底
+  if(texCache[s.id] && texCache[s.id] !== 'fallback'){
+    showNatureBg(s); return;
+  }
   const fallbackTex = buildFallbackTex(s.fallback);
   applyTex(fallbackTex, s.filter);
-  // 用 img 标签加载外部图片（不设 crossOrigin，避免 CORS 问题）
-  // 但 Three.js Texture 需要同源或 CORS，所以改用 CSS 背景层叠加
+  canvas.style.opacity = '1';
+
   const imgEl = document.createElement('img');
-  imgEl.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;pointer-events:none;';
   imgEl.id = 'nature-bg-' + s.id;
+  // 300%宽 200%高 → 横向180° + 上下可看
+  imgEl.style.cssText = 'position:fixed;top:0;left:0;width:300%;height:200%;object-fit:cover;object-position:center center;z-index:0;pointer-events:none;transform:translate(-33.33%,-25%);will-change:transform;cursor:grab;';
+
   imgEl.onload = () => {
-    // 移除旧的背景图
     document.querySelectorAll('[id^="nature-bg-"]').forEach(el => {
       if(el.id !== imgEl.id) el.remove();
     });
-    // 隐藏 Three.js canvas，显示真实图片
     canvas.style.opacity = '0';
-    canvas.style.filter = '';
     document.body.appendChild(imgEl);
     imgEl.style.filter = s.filter || '';
-    texCache[s.id] = 'img'; // 标记已加载
+    texCache[s.id] = imgEl.src;
+    bindImgDrag(imgEl);
   };
   imgEl.onerror = () => {
-    // 加载失败保留程序化兜底
-    texCache[s.id] = fallbackTex;
+    texCache[s.id] = 'fallback';
     canvas.style.opacity = '1';
     canvas.style.filter = s.filter || '';
   };
   imgEl.src = s.img;
+}
+
+function showNatureBg(s) {
+  loadSceneTex({...s, id: s.id + '_r'});
+  texCache[s.id + '_r'] = null;
+}
+
+let imgDragX = -33.33, imgDragY = -25;
+let imgDragStartX = 0, imgDragStartY = 0, imgDragging = false;
+
+function bindImgDrag(imgEl) {
+  imgDragX = -33.33;
+  imgDragY = -25;
+
+  const getXY = e => ({
+    x: e.clientX ?? e.touches?.[0]?.clientX ?? 0,
+    y: e.clientY ?? e.touches?.[0]?.clientY ?? 0,
+  });
+
+  const onDown = e => {
+    imgDragging = true;
+    const {x, y} = getXY(e);
+    imgDragStartX = x - imgDragX * window.innerWidth / 100;
+    imgDragStartY = y - imgDragY * window.innerHeight / 100;
+    imgEl.style.cursor = 'grabbing';
+  };
+  const onUp = () => {
+    imgDragging = false;
+    imgEl.style.cursor = 'grab';
+  };
+  const onMove = e => {
+    if (!imgDragging) return;
+    const {x, y} = getXY(e);
+    // 横向：-66.66% ~ 0%（300%宽的居中范围）
+    imgDragX = Math.max(-66.66, Math.min(0,
+      (x - imgDragStartX) * 100 / window.innerWidth
+    ));
+    // 纵向：-50% ~ 0%（200%高的居中范围）
+    imgDragY = Math.max(-50, Math.min(0,
+      (y - imgDragStartY) * 100 / window.innerHeight
+    ));
+    imgEl.style.transform = `translate(${imgDragX}%, ${imgDragY}%)`;
+  };
+
+  imgEl.addEventListener('mousedown', onDown);
+  window.addEventListener('mouseup', onUp);
+  window.addEventListener('mousemove', onMove);
+  imgEl.addEventListener('touchstart', onDown, {passive:true});
+  window.addEventListener('touchend', onUp);
+  window.addEventListener('touchmove', onMove, {passive:true});
+
+  // 自动缓慢左右平移
+  let autoPanX = imgDragX, autoPanDir = 1;
+  const autoPan = () => {
+    if (imgDragging || !document.body.contains(imgEl)) return;
+    autoPanX += autoPanDir * 0.006;
+    if (autoPanX >= -5)  autoPanDir = -1;
+    if (autoPanX <= -61) autoPanDir = 1;
+    imgDragX = autoPanX;
+    imgEl.style.transform = `translate(${autoPanX}%, ${imgDragY}%)`;
+    requestAnimationFrame(autoPan);
+  };
+  requestAnimationFrame(autoPan);
 }
 
 /* ════════════════════════
